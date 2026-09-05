@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fusion Studio</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#161920; --panel-2:#1c2029; --line:#272c37;
+  --ink:#e6e9ef; --dim:#8b93a3; --faint:#5d6472;
+  --accent:#6aa9ff; --ok:#5fcf80; --warn:#e0b050; --bad:#e0655f;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ---- top bar ---- */
+header{
+  display:flex;align-items:center;gap:14px;padding:9px 14px;
+  border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto;
+}
+.brand{font-weight:650;letter-spacing:.2px}
+.brand span{color:var(--faint);font-weight:400}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;padding:3px 9px;
+  border:1px solid var(--line);border-radius:20px;
+  font:11px/1 var(--mono);color:var(--dim);white-space:nowrap;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+header .spacer{flex:1}
+select,input,button{
+  font:inherit;color:var(--ink);background:var(--panel-2);
+  border:1px solid var(--line);border-radius:7px;padding:5px 9px;
+}
+select,input{font-size:12px}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--faint)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:#0b1220;font-weight:600}
+button#stop{background:var(--panel-2);border-color:var(--bad);color:var(--bad);font-weight:600}
+button#stop:hover{background:var(--bad);color:#160c0c}
+
+/* ---- layout ---- */
+main{flex:1;display:grid;grid-template-columns:230px minmax(400px,1fr) minmax(400px,1fr);min-height:0}
+main.no-rail{grid-template-columns:0 minmax(400px,1fr) minmax(400px,1fr)}
+@media(max-width:1100px){main{grid-template-columns:0 1fr 1fr}}
+@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}#rail{display:none}}
+
+/* ---- chat rail ---- */
+#rail{
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  border-right:1px solid var(--line);background:var(--panel);
+}
+main.no-rail #rail{display:none}
+#rail-head{
+  display:flex;align-items:center;gap:8px;padding:9px 11px;
+  border-bottom:1px solid var(--line);font:11px/1 var(--mono);
+  color:var(--faint);text-transform:uppercase;letter-spacing:.9px;
+}
+#rail-head .spacer{flex:1}
+#newchat{padding:3px 9px;font-size:12px;line-height:1.3}
+#chats{flex:1;overflow:auto;padding:7px}
+.chat{
+  position:relative;padding:8px 26px 8px 10px;border-radius:8px;cursor:pointer;
+  border:1px solid transparent;margin-bottom:3px;
+}
+.chat:hover{background:var(--panel-2)}
+.chat.on{background:var(--panel-2);border-color:var(--line)}
+.chat .t{font-size:13px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat.on .t{color:var(--ink)}
+.chat .m{font:10px/1.4 var(--mono);color:var(--faint);margin-top:2px;display:flex;gap:7px}
+.chat .x{
+  position:absolute;right:5px;top:6px;width:19px;height:19px;padding:0;
+  border:0;background:transparent;color:var(--faint);opacity:0;font-size:14px;
+  border-radius:5px;line-height:1;
+}
+.chat:hover .x{opacity:1}
+.chat .x:hover{background:var(--line);color:var(--bad)}
+.chat .live{width:6px;height:6px;border-radius:50%;background:var(--accent);
+  align-self:center;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+.col{display:flex;flex-direction:column;min-height:0;min-width:0}
+.col+.col{border-left:1px solid var(--line)}
+.col-head{
+  display:flex;align-items:center;gap:8px;padding:7px 12px;
+  border-bottom:1px solid var(--line);background:var(--panel);
+  font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.7px;
+}
+.col-head .spacer{flex:1}
+
+/* ---- transcript ---- */
+#log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user{
+  align-self:flex-end;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:12px 12px 3px 12px;padding:9px 13px;
+}
+.msg.user img{max-width:280px;border-radius:7px;display:block;margin-bottom:7px}
+.msg.agent{align-self:flex-start}
+.think{
+  border-left:2px solid var(--line);padding:2px 0 2px 11px;margin:2px 0 8px;
+  color:var(--faint);font-size:12.5px;white-space:pre-wrap;
+  max-height:130px;overflow-y:auto;
+}
+.think b{display:block;font:10px/1.6 var(--mono);text-transform:uppercase;letter-spacing:.7px}
+.tool{
+  border:1px solid var(--line);border-radius:9px;background:var(--panel);
+  margin:8px 0;font-size:12.5px;overflow:hidden;
+}
+.tool summary{
+  cursor:pointer;padding:7px 11px;display:flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:12px;list-style:none;
+}
+.tool summary::-webkit-details-marker{display:none}
+.tool .name{color:var(--accent)}
+.tool.mut .name{color:var(--warn)}
+.tool .state{margin-left:auto;font-size:11px;color:var(--dim)}
+.tool pre{
+  margin:0;padding:9px 11px;border-top:1px solid var(--line);
+  background:#0c0e13;font:11.5px/1.5 var(--mono);color:var(--dim);
+  max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.checks{padding:7px 11px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:5px}
+.check{font:10.5px/1.5 var(--mono);padding:2px 7px;border-radius:5px;background:var(--panel-2);color:var(--dim)}
+.check.pass{color:var(--ok)} .check.fail{color:var(--bad)} .check.warn{color:var(--warn)}
+.err{border:1px solid var(--bad);border-radius:9px;padding:9px 12px;color:var(--bad);font-size:13px}
+.hint{color:var(--faint);font-size:12.5px;text-align:center;padding:26px 20px;line-height:1.7}
+.hint code{font-family:var(--mono);color:var(--dim);font-size:11.5px}
+
+/* ---- composer ---- */
+#composer{border-top:1px solid var(--line);padding:10px 12px;background:var(--panel);flex:0 0 auto}
+#attached{display:none;margin-bottom:8px;gap:8px;flex-wrap:wrap}
+#attached.on{display:flex}
+.thumb{position:relative}
+.thumb img{
+  max-height:84px;border-radius:7px;border:1px solid var(--line);display:block;
+  cursor:pointer;
+}
+.thumb img:hover{border-color:var(--accent)}
+.thumb .n{
+  position:absolute;left:4px;bottom:4px;font:10px/1.4 var(--mono);
+  background:rgba(0,0,0,.66);color:var(--ink);padding:1px 5px;border-radius:4px;
+}
+.thumb button{
+  position:absolute;top:-7px;right:-7px;width:21px;height:21px;padding:0;
+  border-radius:50%;font-size:12px;line-height:1;background:var(--panel-2);
+}
+.msg.user .shots{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.msg.user .shots img{max-width:150px;margin:0}
+.row{display:flex;gap:8px;align-items:flex-end}
+#text{
+  flex:1;resize:none;min-height:42px;max-height:180px;padding:10px 12px;
+  border-radius:9px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--ink);font:inherit;
+}
+#text:focus{outline:none;border-color:var(--faint)}
+
+/* ---- viewport ---- */
+#stage{flex:1;position:relative;overflow:hidden;background:#0a0c10;
+  display:flex;align-items:center;justify-content:center}
+#stage img{max-width:100%;max-height:100%;display:block}
+#canvas{position:absolute;cursor:crosshair;touch-action:none}
+#stage .empty{color:var(--faint);font-size:13px;text-align:center;padding:24px;line-height:1.7}
+.tools-row{display:flex;align-items:center;gap:7px;padding:7px 12px;
+  border-top:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.swatch{width:19px;height:19px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.swatch.on{border-color:var(--ink)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="rail-toggle" title="Show or hide chats" style="padding:5px 8px">☰</button>
+  <div class="brand">Fusion&nbsp;Studio <span>/ cad agent</span></div>
+  <div class="chip"><span class="dot" id="d-bridge"></span><span id="s-bridge">bridge…</span></div>
+  <div class="chip"><span class="dot" id="d-model"></span><span id="s-model">model…</span></div>
+  <div class="spacer"></div>
+  <select id="preset" title="Model"></select>
+  <input id="baseurl" class="hide" placeholder="http://localhost:11434/v1" size="24" title="Base URL">
+  <select id="effort" title="Effort">
+    <option value="low" selected>low</option><option value="medium">medium</option>
+    <option value="high">high</option><option value="xhigh">xhigh</option>
+  </select>
+  <button id="reset" title="Clear this conversation">Reset</button>
+</header>
+
+<main>
+  <aside id="rail">
+    <div id="rail-head">Chats<div class="spacer"></div><button id="newchat">+ New</button></div>
+    <div id="chats"></div>
+  </aside>
+
+  <section class="col">
+    <div class="col-head">Conversation<div class="spacer"></div><span id="usage"></span></div>
+    <div id="log">
+      <div class="hint" id="welcome">
+        Describe the part you want, or capture the viewport and draw on it.<br><br>
+        <code>Make a 12 × 4 × 2 in isogrid bar, skeletonized</code><br>
+        <code>The pocket walls are too thin — thicken the ribs</code>
+      </div>
+    </div>
+    <div id="composer">
+      <div id="attached"></div>
+      <div class="row">
+        <textarea id="text" rows="1" placeholder="Describe the part, or the change you want…"></textarea>
+        <button id="send" class="primary">Send</button>
+        <button id="stop" class="hide" title="Stop generating (Esc)">■ Stop</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="col">
+    <div class="col-head">
+      Viewport<div class="spacer"></div>
+      <select id="view" title="Which view to capture">
+        <option value="current" selected>current view</option>
+        <option value="iso">iso</option><option value="top">top</option>
+        <option value="front">front</option><option value="right">right</option>
+        <option value="bottom">bottom</option><option value="left">left</option>
+        <option value="back">back</option>
+      </select>
+      <button id="grab">Capture</button>
+    </div>
+    <div id="stage">
+      <div class="empty" id="stage-empty">
+        No capture yet.<br>Press <b>Capture</b> to pull the current Fusion viewport.
+      </div>
+      <img id="shot" class="hide" alt="viewport">
+      <canvas id="canvas" class="hide"></canvas>
+    </div>
+    <div class="tools-row">
+      <button id="draw">✏️ Markup</button>
+      <span id="drawtools" class="hide" style="display:flex;gap:7px;align-items:center">
+        <button class="swatch on" data-c="#ff4d4d" style="background:#ff4d4d"></button>
+        <button class="swatch" data-c="#6aa9ff" style="background:#6aa9ff"></button>
+        <button class="swatch" data-c="#5fcf80" style="background:#5fcf80"></button>
+        <button class="swatch" data-c="#ffd23f" style="background:#ffd23f"></button>
+        <button id="undo">Undo</button><button id="clear">Clear</button>
+        <button id="attach" class="primary">Attach ↑</button>
+      </span>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const log = $('#log');
+let PRESETS = {}, CHAT = null, drawing = false, strokes = [], stroke = null, colour = '#ff4d4d';
+// Each entry is a flattened capture+markup data URL. Order is what the model
+// sees, and what the "Image N of M" labels refer to.
+let attachments = [];
+
+/* ---------------- bootstrap ---------------- */
+async function boot(){
+  const r = await fetch('/api/bootstrap').then(r => r.json());
+  PRESETS = r.presets || {};
+
+  const sel = $('#preset'); sel.innerHTML = '';
+  const groups = {};
+  for (const [id, p] of Object.entries(PRESETS)) (groups[p.provider] ||= []).push([id, p]);
+  for (const [provider, items] of Object.entries(groups)) {
+    const state = (r.backends || {})[provider] || {};
+    const g = document.createElement('optgroup');
+    g.label = provider + (state.sdk_installed ? (state.key_present ? '' : ' — no key') : ' — SDK not installed');
+    for (const [id, p] of items) {
+      const o = document.createElement('option');
+      o.value = id; o.textContent = p.label; o.dataset.provider = p.provider;
+      o.dataset.baseUrl = p.base_url || '';
+      if (!state.sdk_installed) o.disabled = true;
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
+  const cur = (r.current || {}).model;
+  if (cur && sel.querySelector(`option[value="${CSS.escape(cur)}"]`)) sel.value = cur;
+  if ((r.current || {}).effort) $('#effort').value = r.current.effort;
+  syncBaseUrl();
+
+  setStatus('#d-bridge', '#s-bridge', r.bridge === 'connected',
+    r.bridge === 'connected' ? `${(r.tools||[]).length} tools` : 'bridge down');
+  setStatus('#d-model', '#s-model', r.model_ok, r.model_status || 'no model');
+
+  // Adopt whichever chat the server considers current, then paint the rail.
+  CHAT = (r.session || {}).id || null;
+  renderChats(r.sessions || []);
+  if (CHAT) await openChat(CHAT); else await newChat();
+
+  if (r.bridge !== 'connected') {
+    addError('Fusion bridge unreachable. Run the FusionCadAgent add-in in Fusion, then reload.');
+  }
+}
+function setStatus(dot, label, ok, text){
+  $(dot).className = 'dot ' + (ok ? 'ok' : 'bad');
+  $(label).textContent = text;
+}
+function syncBaseUrl(){
+  const o = $('#preset').selectedOptions[0];
+  const local = o && o.dataset.baseUrl;
+  $('#baseurl').classList.toggle('hide', !local);
+  if (local) $('#baseurl').value = o.dataset.baseUrl;
+}
+async function applyModel(){
+  const o = $('#preset').selectedOptions[0]; if (!o) return;
+  syncBaseUrl();
+  const body = { provider:o.dataset.provider, model:o.value, effort:$('#effort').value,
+                 base_url: $('#baseurl').classList.contains('hide') ? '' : $('#baseurl').value };
+  setStatus('#d-model', '#s-model', false, 'switching…');
+  const r = await fetch(q('/api/model'), {method:'POST', headers:{'Content-Type':'application/json'},
+                                       body:JSON.stringify(body)}).then(r=>r.json());
+  setStatus('#d-model', '#s-model', r.ok, r.status);
+  if (r.ok) {
+    // Per chat, not global: another chat can stay on a different model, which
+    // is the point of being able to compare them on the same task.
+    note(`This chat switched to ${o.textContent}. Its history was cleared — provider state can't be transplanted.`);
+    refreshChats();
+  }
+}
+$('#preset').onchange = applyModel;
+$('#effort').onchange = applyModel;
+$('#baseurl').onchange = applyModel;
+
+/* ---------------- transcript ---------------- */
+function el(cls, parent, text){
+  const d = document.createElement('div'); d.className = cls;
+  if (text !== undefined) d.textContent = text;
+  (parent || log).appendChild(d); return d;
+}
+function scroll(){ log.scrollTop = log.scrollHeight; }
+function addError(m){ el('err', log, m); scroll(); }
+function note(m){ el('hint', log, m); scroll(); }
+
+function renderChecks(payload, host){
+  const reports = [].concat(payload && payload.verification || []).filter(Boolean);
+  const blocks = reports.length ? reports : (payload && payload.label ? [payload] : []);
+  if (!blocks.length) return;
+  const row = el('checks', host);
+  for (const rep of blocks) {
+    // Passing checks arrive as names only -- the detail is worth nothing to
+    // a reader, and worth even less to the model that had to read it.
+    for (const name of (rep.passed_checks || [])) el('check pass', row, '\u2713 ' + name);
+    for (const c of (rep.checks || [])) {
+      const cls = c.ok ? 'pass' : (c.severity === 'warning' ? 'warn' : 'fail');
+      const b = el('check ' + cls, row, (c.ok ? '✓ ' : (cls==='warn'?'! ':'✕ ')) + c.name);
+      if (!c.ok) b.title = `got ${c.actual}, expected ${c.expected}` + (c.detail ? `\n${c.detail}` : '');
+    }
+  }
+}
+
+/* ---------------- chats ---------------- */
+// One renderer, used by both the live stream and by replay. If they were
+// separate, reopening a chat would show something subtly different from what
+// you watched happen -- which is the bug that makes history untrustworthy.
+function renderEvent(agent, ev, d, ctx){
+  if (ev === 'user') {
+    const bubble = el('msg user', log);
+    if (d.images) el('hint', bubble, `${d.images} image${d.images>1?'s':''} attached`);
+    if (d.text) bubble.appendChild(document.createTextNode(d.text));
+    ctx.agent = null;
+    return null;
+  }
+  if (!agent) { agent = el('msg agent', log); ctx.textNode = null; }
+
+  if (ev === 'thinking_start') {
+    ctx.thinkBox = el('think', agent); ctx.thinkBox.innerHTML = '<b>thinking</b>';
+  } else if (ev === 'thinking') {
+    if (!ctx.thinkBox) { ctx.thinkBox = el('think', agent); ctx.thinkBox.innerHTML = '<b>thinking</b>'; }
+    ctx.thinkBox.appendChild(document.createTextNode(d.text)); ctx.thinkBox.scrollTop = 1e6;
+  } else if (ev === 'text') {
+    if (!ctx.textNode) { ctx.textNode = document.createElement('span'); agent.appendChild(ctx.textNode); }
+    ctx.textNode.textContent += d.text;
+  } else if (ev === 'tool_start') {
+    const box = document.createElement('details');
+    box.className = 'tool' + (d.mutating ? ' mut' : '');
+    box.innerHTML = `<summary><span class="name">${d.name}</span>
+      <span class="state">running…</span></summary>`;
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(d.arguments, null, 2);
+    box.appendChild(pre); agent.appendChild(box);
+    ctx.pending[d.id] = box; ctx.textNode = null;
+  } else if (ev === 'tool_end') {
+    const box = ctx.pending[d.id]; if (!box) return agent;
+    box.querySelector('.state').textContent = d.ok ? 'ok' : 'failed';
+    box.querySelector('.state').style.color = d.ok ? 'var(--ok)' : 'var(--bad)';
+    if (!d.ok) box.open = true;
+    renderChecks(d.result, box);
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(d.result, null, 2).slice(0, 4000);
+    box.appendChild(pre);
+  } else if (ev === 'vision') {
+    const v = el('think', agent); v.innerHTML = '<b>looked at it</b>';
+    v.appendChild(document.createTextNode(d.text)); ctx.textNode = null;
+  } else if (ev === 'capture') {
+    showShot(d.url);
+    const img = document.createElement('img');
+    img.src = d.url; img.style.cssText = 'max-width:100%;border-radius:8px;margin:8px 0;border:1px solid var(--line)';
+    agent.appendChild(img); ctx.textNode = null;
+  } else if (ev === 'usage') {
+    const bits = [];
+    if (d.input_tokens || d.input) bits.push(`${d.input_tokens||d.input} in`);
+    if (d.output_tokens || d.output) bits.push(`${d.output_tokens||d.output} out`);
+    if (d.cached_input_tokens) bits.push(`${d.cached_input_tokens} cached`);
+    if (d.session_cost_usd != null) bits.push(`$${(+d.session_cost_usd).toFixed(4)}`);
+    $('#usage').textContent = bits.join(' · ');
+  } else if (ev === 'stopped') {
+    const why = d.before ? `Stopped before running ${d.before.join(', ')}.` : 'Stopped.';
+    el('hint', agent, why);
+    ctx.textNode = null;
+  } else if (ev === 'error') {
+    addError(d.message);
+  }
+  return agent;
+}
+
+function q(path){ return CHAT ? `${path}${path.includes('?')?'&':'?'}session=${CHAT}` : path; }
+
+function renderChats(list){
+  const host = $('#chats'); host.innerHTML = '';
+  for (const s of list) {
+    const row = el('chat' + (s.id === CHAT ? ' on' : ''), host);
+    el('t', row, s.title);
+    const meta = el('m', row);
+    meta.appendChild(document.createTextNode(String(s.model || '').split('/').pop()));
+    if (s.messages) meta.appendChild(document.createTextNode(`${s.messages} msg`));
+    if (s.cost) meta.appendChild(document.createTextNode(`$${s.cost.toFixed(4)}`));
+    if (s.busy) el('live', meta);
+    row.onclick = e => { if (!e.target.classList.contains('x')) openChat(s.id); };
+    const x = document.createElement('button');
+    x.className = 'x'; x.textContent = '×'; x.title = 'Delete this chat';
+    x.onclick = async e => {
+      e.stopPropagation();
+      const r = await fetch(`/api/session/${s.id}`, {method:'DELETE'}).then(r=>r.json());
+      if (s.id === CHAT) { CHAT = null; log.innerHTML = ''; }
+      renderChats(r.sessions || []);
+      if (!CHAT) { const first = (r.sessions||[])[0]; first ? openChat(first.id) : newChat(); }
+    };
+    row.appendChild(x);
+  }
+}
+
+async function refreshChats(){
+  const r = await fetch('/api/sessions').then(r => r.json());
+  renderChats(r.sessions || []);
+}
+
+async function openChat(id){
+  CHAT = id;
+  const s = await fetch(`/api/session/${id}`).then(r => r.json());
+  log.innerHTML = '';
+  $('#usage').textContent = '';
+  const ctx = {textNode:null, thinkBox:null, pending:{}, agent:null};
+  for (const entry of (s.log || [])) {
+    ctx.agent = renderEvent(ctx.agent, entry.kind, entry.data || {}, ctx);
+  }
+  if (!(s.log || []).length) {
+    note('New chat. Describe the part you want, or capture the viewport and draw on it.');
+  }
+  scroll();
+  await refreshChats();
+}
+
+async function newChat(){
+  const s = await fetch('/api/sessions', {method:'POST'}).then(r => r.json());
+  await openChat(s.id);
+  $('#text').focus();
+}
+$('#newchat').onclick = newChat;
+$('#rail-toggle').onclick = () => $('main').classList.toggle('no-rail');
+
+/* ---------------- send ---------------- */
+async function send(){
+  const text = $('#text').value.trim();
+  if (!text && !attachments.length) return;
+  $('#welcome')?.remove();
+  $('.hint')?.remove?.();
+
+  const bubble = el('msg user', log);
+  if (attachments.length) {
+    const strip = el('shots', bubble);
+    for (const src of attachments) {
+      const i = document.createElement('img'); i.src = src; strip.appendChild(i);
+    }
+  }
+  if (text) bubble.appendChild(document.createTextNode(text));
+  scroll();
+
+  const body = JSON.stringify({ text, images: attachments.slice() });
+  $('#text').value = ''; $('#text').style.height = 'auto';
+  clearAttachments();
+  setBusy(true);
+
+  let agent = el('msg agent', log);
+  const ctx = {textNode:null, thinkBox:null, pending:{}};
+
+  try {
+    const res = await fetch(q('/api/chat'), {method:'POST', headers:{'Content-Type':'application/json'}, body});
+    if (!res.ok) { addError((await res.json()).error || `HTTP ${res.status}`); $('#send').disabled=false; return; }
+
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    for(;;){
+      const {value, done} = await reader.read(); if (done) break;
+      buf += dec.decode(value, {stream:true});
+      const parts = buf.split('\n\n'); buf = parts.pop();
+      for (const raw of parts) {
+        const ev = (raw.match(/^event: (.+)$/m) || [])[1];
+        const dm = raw.match(/^data: ([\s\S]*)$/m); if (!ev || !dm) continue;
+        let d; try { d = JSON.parse(dm[1]); } catch { continue; }
+        agent = renderEvent(agent, ev, d, ctx) || agent;
+        scroll();
+      }
+    }
+  } catch (e) { addError(String(e)); }
+  setBusy(false); $('#text').focus();
+  refreshChats();
+}
+
+function setBusy(on){
+  $('#send').classList.toggle('hide', on);
+  $('#stop').classList.toggle('hide', !on);
+  $('#send').disabled = on;
+}
+async function stopNow(){
+  $('#stop').disabled = true;
+  try { await fetch(q('/api/stop'), {method:'POST'}); }
+  finally { $('#stop').disabled = false; }
+}
+$('#stop').onclick = stopNow;
+// Esc is what everyone reaches for, and reaching for the mouse mid-generation
+// is exactly when you least want to.
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#stop').classList.contains('hide')) {
+    e.preventDefault(); stopNow();
+  }
+});
+$('#send').onclick = send;
+$('#text').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+$('#text').addEventListener('input', e => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
+});
+$('#reset').onclick = async () => {
+  await fetch(q('/api/reset'), {method:'POST'});
+  log.innerHTML = ''; note('Conversation cleared. The Fusion document is untouched.');
+  refreshChats();
+};
+
+/* ---------------- viewport + markup ---------------- */
+function showShot(url){
+  $('#stage-empty').classList.add('hide');
+  const img = $('#shot'); img.src = url; img.classList.remove('hide');
+}
+$('#grab').onclick = async () => {
+  $('#grab').disabled = true; $('#grab').textContent = '…';
+  try {
+    const r = await fetch('/api/capture?view=' + $('#view').value).then(r => r.json());
+    if (r.url) { showShot(r.url); if (drawing) setTimeout(fitCanvas, 60); }
+    else addError(r.error || r.message || 'capture failed');
+  } catch (e) { addError(String(e)); }
+  $('#grab').disabled = false; $('#grab').textContent = 'Capture';
+};
+
+function fitCanvas(){
+  const img = $('#shot'), c = $('#canvas');
+  if (img.classList.contains('hide') || !img.naturalWidth) return;
+  const r = img.getBoundingClientRect(), s = $('#stage').getBoundingClientRect();
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  c.style.left = (r.left - s.left) + 'px'; c.style.top = (r.top - s.top) + 'px';
+  c.style.width = r.width + 'px'; c.style.height = r.height + 'px';
+  redraw();
+}
+function redraw(){
+  const c = $('#canvas'), x = c.getContext('2d');
+  x.clearRect(0, 0, c.width, c.height);
+  x.lineCap = x.lineJoin = 'round';
+  x.lineWidth = Math.max(3, c.width / 320);
+  for (const s of strokes) {
+    x.strokeStyle = s.c; x.beginPath();
+    s.pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]));
+    x.stroke();
+  }
+}
+$('#draw').onclick = () => {
+  drawing = !drawing;
+  $('#canvas').classList.toggle('hide', !drawing);
+  $('#drawtools').classList.toggle('hide', !drawing);
+  $('#draw').textContent = drawing ? '✏️ Drawing' : '✏️ Markup';
+  if (drawing) fitCanvas();
+};
+$('#shot').addEventListener('load', () => { if (drawing) fitCanvas(); });
+window.addEventListener('resize', () => { if (drawing) fitCanvas(); });
+
+function at(e){
+  const c = $('#canvas'), r = c.getBoundingClientRect();
+  return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height];
+}
+const cv = $('#canvas');
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  stroke = {c: colour, pts: [at(e)]}; strokes.push(stroke); redraw();
+});
+cv.addEventListener('pointermove', e => { if (stroke) { stroke.pts.push(at(e)); redraw(); } });
+cv.addEventListener('pointerup', () => { stroke = null; });
+document.querySelectorAll('.swatch').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.swatch').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); colour = b.dataset.c;
+});
+$('#undo').onclick = () => { strokes.pop(); redraw(); };
+$('#clear').onclick = () => { strokes = []; redraw(); };
+
+function renderAttachments(){
+  const host = $('#attached');
+  host.innerHTML = '';
+  host.classList.toggle('on', attachments.length > 0);
+  attachments.forEach((src, index) => {
+    const cell = document.createElement('div'); cell.className = 'thumb';
+    const img = document.createElement('img'); img.src = src;
+    img.title = 'Click to send back to the canvas and keep marking it up';
+    // Re-open a thumbnail on the canvas so a capture can be annotated in
+    // several passes instead of having to get it right in one.
+    img.onclick = () => {
+      const shot = $('#shot');
+      shot.src = src; shot.classList.remove('hide');
+      $('#stage-empty').classList.add('hide');
+      strokes = [];
+      attachments.splice(index, 1); renderAttachments();
+      if (!drawing) $('#draw').click(); else setTimeout(fitCanvas, 60);
+    };
+    const tag = document.createElement('span');
+    tag.className = 'n'; tag.textContent = index + 1;
+    const drop = document.createElement('button'); drop.textContent = '×';
+    drop.onclick = e => { e.stopPropagation();
+                          attachments.splice(index, 1); renderAttachments(); };
+    cell.append(img, tag, drop); host.appendChild(cell);
+  });
+}
+function addAttachment(dataUrl){
+  if (attachments.length >= 8) { addError('Eight attachments is the limit per message.'); return; }
+  attachments.push(dataUrl); renderAttachments(); $('#text').focus();
+}
+function clearAttachments(){ attachments = []; renderAttachments(); }
+
+$('#attach').onclick = () => {
+  const img = $('#shot'); if (img.classList.contains('hide')) return;
+  // Flatten the capture and the markup into one image so the model sees the
+  // annotation in place rather than as a separate overlay it must align.
+  const out = document.createElement('canvas');
+  out.width = img.naturalWidth; out.height = img.naturalHeight;
+  const x = out.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.drawImage($('#canvas'), 0, 0);
+  addAttachment(out.toDataURL('image/png'));
+  // Clear the markup but keep the capture, so the next Attach is a fresh
+  // annotation rather than an accumulation of every previous one.
+  strokes = []; redraw();
+};
+
+document.addEventListener('paste', e => {
+  for (const item of e.clipboardData.files) {
+    if (!item.type.startsWith('image/')) continue;
+    const fr = new FileReader();
+    fr.onload = () => addAttachment(fr.result);
+    fr.readAsDataURL(item);
+  }
+});
+
+boot();
+</script>
+</body>
+</html>

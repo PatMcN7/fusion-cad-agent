@@ -1,0 +1,13 @@
+{
+    "autodeskProduct": "Fusion",
+  "type": "addin",
+    "id": "4421983f-64ef-46c5-8a06-e04615a67e50",
+  "author": "Patrick McNaughton",
+  "description": {
+    "": "Local authenticated bridge for agent-driven Fusion inspection and modeling."
+  },
+  "version": "0.1.0",
+  "runOnStartup": false,
+  "supportedOS": "windows|mac",
+  "editEnabled": true
+}
