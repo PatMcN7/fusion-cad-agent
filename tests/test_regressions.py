@@ -247,7 +247,7 @@ class AgentBrief(unittest.TestCase):
         # Assert by construction rather than by importing the studio, which
         # would pull in optional vendor SDKs the test env need not have.
         self.assertIn("SYSTEM_PROMPT = _load_brief()", source)
-        self.assertIn("catalog.brief()", source)
+        self.assertIn("from agent_runtime import PROMPT", source)
 
     def test_brief_documents_the_source_editing_escape_hatch(self):
         # The capability that solved a real request and was undocumented:

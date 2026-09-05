@@ -1,7 +1,25 @@
 # Handoff
 
-Written 2026-09-05. Everything below is the state of this repository at that
-date, what each piece is for, and what is known to be broken or unfinished.
+Original handoff written 2026-09-05. The historical sections below describe the
+starting point; this update and `PLAN.md` supersede their status claims.
+
+## Current implementation update
+
+- Baseline and protocol-v4 changes are committed (`021096f`, `2441dd9`,
+  `9724291`). There are now bounded complexity checks and durable operation IDs.
+- The next interface iteration fixes explicit argument types, introduces native
+  feature references and managed lattice edits, replaces asynchronous global
+  undo with synchronous scoped deletion, and reduces Studio context and captures.
+- Studio uses `studio/agent_runtime.py` as its compact prompt; MCP uses
+  `catalog.brief()` and this repository's `AGENTS.md`. Registered tools publish
+  explicit schemas; prose inference is only a legacy client fallback.
+- Read `docs/agent-interface-validation.md` for replay evidence, current test
+  counts, and limitations. `docs/runtime.md` describes the execution contract.
+- Restart Studio with `./studio/run.sh` to load client changes. Native geometry
+  hot reload is separate. API configuration remains in ignored `studio/.env`.
+- The original saved assembly was not changed by the disposable validation runs.
+  General saved-assembly revision, reopen identity, and recipe execution remain
+  future work; do not interpret the plate replay as completing those milestones.
 
 ## The thesis
 

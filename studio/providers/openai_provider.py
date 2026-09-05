@@ -135,10 +135,12 @@ class OpenAIProvider(Provider):
         } for tool in tools]
 
         payload = [{"role": "system", "content": system}] + self.messages
+        from agent_runtime import compact_messages
+        compact_messages(self.messages)
         try:
             stream = self._create(
                 model=self.model,
-                max_tokens=MAX_TOKENS,
+                max_tokens=getattr(self, "max_output_tokens", MAX_TOKENS),
                 messages=payload,
                 tools=definitions or None,
                 stream=True,

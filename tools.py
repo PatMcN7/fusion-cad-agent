@@ -28,6 +28,8 @@ import ops
 import patterns
 import pick
 import workspace
+import editing
+import tool_contracts
 from assertions import Check, CheckSuite
 from checkpoints import operation, tool_scope
 from errors import (ArgumentError, BridgeError, PatternError, SelectionError,
@@ -38,6 +40,7 @@ from errors import (ArgumentError, BridgeError, PatternError, SelectionError,
 # to the file tools lands on the next call like every other geometry fix.
 # Nobody should have to restart Fusion to receive a bug fix.
 _importlib.reload(workspace)
+_importlib.reload(editing)
 
 # pick/ops/geom/fasteners are imported here rather than by the shell, so
 # reload them alongside this module. Order matters: ops imports pick.
@@ -231,54 +234,23 @@ def delete_named_features(arguments: dict[str, Any]) -> dict[str, Any]:
     root = design.rootComponent
     feature_names = arguments.get("feature_names", [])
     sketch_names = arguments.get("sketch_names", [])
-    if not isinstance(feature_names, list) or not feature_names:
-        raise ArgumentError("feature_names must be a non-empty list")
+    if not isinstance(feature_names, list):
+        raise ArgumentError("feature_names must be a list")
+    if not feature_names and not sketch_names:
+        raise ArgumentError("Supply explicit feature_names or sketch_names")
     if not isinstance(sketch_names, list):
         raise ArgumentError("sketch_names must be a list")
 
-    reports = []
-    deleted_features = []
-    for name in feature_names:
-        matches = [
-            root.features.item(i)
-            for i in range(root.features.count)
-            if root.features.item(i).name == name
-        ]
-        if len(matches) != 1:
-            raise ToolFailure(
-                f"expected exactly one feature named '{name}', found {len(matches)}"
-            )
-        before = root.features.count
-        with operation(design, f"delete_feature_{name}", cleanup_supported=False) as (_, suite):
-            removed = bool(matches[0].deleteMe())
-            suite.add(Check("feature_deleted", removed, str(removed), "True"))
-            suite.require()
-            suite.add(assertions.count_equals(
-                "feature_count_decreased", root.features.count, before - 1
-            ))
-        reports.append(suite.report())
-        deleted_features.append(name)
-
-    deleted_sketches = []
-    for name in sketch_names:
-        matches = [
-            root.sketches.item(i)
-            for i in range(root.sketches.count)
-            if root.sketches.item(i).name == name
-        ]
-        if len(matches) != 1:
-            raise ToolFailure(
-                f"expected exactly one sketch named '{name}', found {len(matches)}"
-            )
-        if not matches[0].deleteMe():
-            raise ToolFailure(f"could not delete sketch '{name}'")
-        deleted_sketches.append(name)
-
-    return {
-        "deleted_features": deleted_features,
-        "deleted_sketches": deleted_sketches,
-        "verification": reports,
-    }
+    references = []
+    for names, collection in ((feature_names, root.features), (sketch_names, root.sketches)):
+        for name in names:
+            matches = [entity for entity in editing.items(collection) if entity.name == name]
+            if len(matches) != 1:
+                raise ArgumentError(f"Expected exactly one entity named {name!r}, found {len(matches)}; use feature_tree references")
+            references.append(editing.ref(design, matches[0]))
+    result = editing.delete(design, references)
+    result.update(deleted_features=feature_names, deleted_sketches=sketch_names)
+    return result
 
 
 def set_6061_material(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -644,6 +616,7 @@ def create_test_box(arguments: dict[str, Any]) -> dict[str, Any]:
     APP.activeViewport.fit()
     return {
         "created_unsaved_document": document.name,
+        "created_entities": [editing.row(design, sketch), editing.row(design, feature)],
         "body": _body_summary(body),
         "verification": [suite.report()],
     }
@@ -1231,12 +1204,30 @@ def add_fasteners(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def undo_last(_: dict[str, Any]) -> dict[str, Any]:
-    command = UI.commandDefinitions.itemById("UndoCommand")
-    if not command:
-        raise ToolFailure("Fusion's Undo command is unavailable.")
-    command.execute()
-    return {"undo_requested": True}
-def capture_viewport(arguments: dict[str, Any]) -> dict[str, Any]:
+    return editing.undo_last(_active_design())
+
+def capture_viewport(arguments):
+    if not arguments.get("clean"):
+        return _capture_viewport(arguments)
+    visibility = []
+    viewport = APP.activeViewport
+    camera, style = viewport.camera, viewport.visualStyle
+    try:
+        for component in editing.items(_active_design().allComponents):
+            for sketch in editing.items(component.sketches):
+                visibility.append((sketch, sketch.isVisible))
+                sketch.isVisible = False
+        result = _capture_viewport(arguments)
+        result["presentation"] = "sketches hidden for this capture; original visibility and camera restored"
+        return result
+    finally:
+        for sketch, visible in visibility:
+            if sketch.isValid: sketch.isVisible = visible
+        viewport.camera, viewport.visualStyle = camera, style
+        viewport.refresh()
+
+
+def _capture_viewport(arguments: dict[str, Any]) -> dict[str, Any]:
     """Render the active viewport to PNG files.
 
     This is the one signal the bridge could not produce before: every other
@@ -1509,7 +1500,7 @@ TOOLS: dict[str, dict[str, Any]] = {
         "description": "Enumerate Fusion GUI command definitions.",
         "mutating": False, "arguments": {"contains": "Optional substring filter."}},
     "create_test_box": {
-        "description": "New unsaved document with one extruded test body.",
+        "description": "New unsaved document with a rectangular body: width=X, height=Y, depth=Z thickness. An 8x6x0.25 plate uses width='8 in', height='6 in', depth='0.25 in'.",
         "mutating": True,
         "arguments": {"width": "e.g. '2 in'", "height": "e.g. '1 in'",
                       "depth": "e.g. '0.5 in'", "name": "Optional."}},
@@ -2000,7 +1991,12 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
     try:
         field = patterns.PATTERNS[kind](length, width, cell, rib, **options)
     except PatternError as exc:
-        raise ArgumentError(str(exc)) from exc
+        raise ArgumentError(
+            f"{exc}. Lattice uses the XY footprint: X={length / CM_PER_INCH:g} in, "
+            f"Y={width / CM_PER_INCH:g} in. Inspect the body orientation and "
+            "requested dimensions before changing cell size or cutter.",
+            footprint_cm={"x": length, "y": width}, cell_size_cm=cell,
+        ) from exc
 
     # A router leaves its own radius in every interior corner, so a lattice
     # drawn with sharp corners is a model the machine cannot reproduce.
@@ -2012,7 +2008,12 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
     topology_field = field
     cutter_expr = arguments.get("cutter_diameter")
     cutter = _cm(units_manager, cutter_expr, "cutter_diameter") if cutter_expr else 0.0
-    corner_radius = cutter / 2.0
+    mode = arguments.get("corner_mode", "sketch_rounding" if cutter else "sharp")
+    if mode not in {"sharp", "sketch_rounding", "feature_fillet"}:
+        raise ArgumentError("Unknown corner_mode")
+    if mode != "sharp" and not cutter:
+        raise ArgumentError("cutter_diameter is required for rounded corners")
+    corner_radius = cutter / 2.0 if mode == "sketch_rounding" else 0.0
     if corner_radius > 0:
         if corner_radius >= cell / 2.0:
             raise ArgumentError(
@@ -2045,15 +2046,19 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
         "cells_tessellate", topology_field, expected=6 if kind == "isogrid" else 3,
         severity_ok_when_deliberate=True))
     preflight.add(assertions.rib_aspect_ratio("rib_aspect", rib, depth, 8.0))
-    preflight.add(assertions.corners_machinable(
-        "corners_machinable", field, corner_radius))
+    if mode != "feature_fillet":
+        preflight.add(assertions.corners_machinable(
+            "corners_machinable", field, corner_radius))
     preflight.require()
     reports = [preflight.report()]
 
+    if arguments.get("_preflight_only"):
+        return {"complexity": workload, "verification": reports}
+    timeline_start = design.timeline.count
     before = body.volume
     top = pick.faces(body).planar().normal_axis("z").extreme("+z").one()
     with operation(design, "lattice_pockets") as (_, suite):
-        ops.cut_polygons(root, body, top, field, -depth, box.maxPoint.z,
+        cut_feature = ops.cut_polygons(root, body, top, field, -depth, box.maxPoint.z,
                          name=f"{kind.title()} Lattice", suite=suite,
                          sides=len(field[0]))
         suite.add(Check(
@@ -2064,18 +2069,39 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
             "material_removed", before, body.volume))
     reports.append(suite.report())
 
+    if mode == "feature_fillet":
+        fillet_result = router_fillet_pocket_corners({"body": body.name,
+            "cutter_diameter": cutter_expr, "rib_width_in": rib / CM_PER_INCH})
+        reports.extend(fillet_result["verification"])
+    chain = [design.timeline.item(i).entity for i in range(timeline_start, design.timeline.count)]
+    import json
+    recipe = {"version": 1, "arguments": {k: v for k, v in arguments.items() if not k.startswith("_")},
+              "tokens": [e.entityToken for e in chain]}
+    recipe["arguments"]["body"] = body.name
+    cut_feature.attributes.add("fusion_cad_agent", "lattice", json.dumps(recipe))
+    for entity in chain:
+        if hasattr(entity, "sketchCurves"): entity.isVisible = False
     solid = body
     result_name = arguments.get("result_name")
     if result_name is not None:
         solid.name = _safe_name(result_name, solid.name)
+        recipe["arguments"]["body"] = solid.name
+        cut_feature.attributes.add("fusion_cad_agent", "lattice", json.dumps(recipe))
     APP.activeViewport.fit()
     return {
+        "lattice_ref": editing.ref(design, cut_feature),
+        "corner_mode": mode,
+        "created_entities": [editing.row(design, e) for e in chain],
         "pattern": kind,
         "cells": len(field),
         "complexity": workload,
         "row_stagger": options.get("row_stagger", 0.0),
         "corner_radius_cm": corner_radius,
-        "machinable": bool(corner_radius > 0),
+        "native_fillet_radius_cm": cutter / 2 if mode == "feature_fillet" else 0.0,
+        "sketch_representation": {"mode": mode, "pocket_count": len(field),
+            "generated_lines": sum(map(len, field)), "lines_per_pocket": len(field[0]),
+            "rounded_by_chord_segments": mode == "sketch_rounding"},
+        "machinable": mode != "sharp",
         "depth_cm": depth,
         "skeletonized": skin <= 0,
         "mass_reduction_percent": 100 * (before - solid.volume) / before,
@@ -2198,15 +2224,38 @@ def design_digest() -> dict[str, Any]:
 
 def _echo_state(handler):
     def wrapped(arguments: dict[str, Any]) -> dict[str, Any]:
+        additive = handler.__name__ in {"lattice_pockets", "router_fillet_pocket_corners", "extrude_polygons", "cut_polygons"}
+        design, start = None, None
+        if additive:
+            try:
+                design = _active_design()
+                start = design.timeline.count
+                if design.timeline.markerPosition != start:
+                    raise ArgumentError("Timeline is rolled back; move to the end before creating a feature")
+            except ArgumentError: raise
+            except Exception: design = None
         try:
             with tool_scope(handler.__name__):
                 result = handler(arguments)
         except Exception as exc:
-            # Errors need state evidence too, especially after a partial tool.
+            editing.invalidate_undo()
             setattr(exc, "design", design_digest())
             raise
-        if isinstance(result, dict) and "design" not in result:
-            result["design"] = design_digest()
+        if isinstance(result, dict):
+            result.setdefault("design", design_digest())
+            result.setdefault("completion", "completed")
+            if design is not None and design.timeline.count > start:
+                entities = [design.timeline.item(i).entity for i in range(start, design.timeline.count)]
+                result.setdefault("created_entities", [editing.row(design, e) for e in entities if e is not None])
+                try:
+                    editing.remember(design, [editing.ref(design, e) for e in entities if e is not None])
+                    result["undo_available"] = True
+                except Exception as exc:
+                    editing.invalidate_undo()
+                    result["undo_available"] = False
+                    result["undo_unavailable_reason"] = str(exc)
+            elif handler.__name__ != "undo_last":
+                editing.invalidate_undo()
         return result
     wrapped.__name__ = getattr(handler, "__name__", "wrapped")
     wrapped.__doc__ = handler.__doc__
@@ -2549,9 +2598,9 @@ def list_files(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def read_file(arguments: dict[str, Any]) -> dict[str, Any]:
     """Read a text file: a spec, a parts list, a source file in this repo."""
-    return workspace.read_text(str(arguments.get("path", "")),
-                               int(arguments.get("max_bytes",
-                                                 workspace.MAX_READ_BYTES)))
+    return workspace.read_text(arguments["path"], arguments.get("max_bytes", 12000),
+                               start_line=arguments.get("start_line", 1),
+                               end_line=arguments.get("end_line"), symbol=arguments.get("symbol"))
 
 
 def fetch_url(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -2715,7 +2764,7 @@ def _document_entry(document, active, index: int) -> dict[str, Any]:
         # name is not an address. The index is.
         "index": index,
         "name": document.name,
-        "active": document.name == getattr(active, "name", None),
+        "active": document == active,
         "modified": bool(document.isModified),
         "saved": bool(document.isSaved),
     }
@@ -2803,7 +2852,7 @@ def switch_document(arguments: dict[str, Any]) -> dict[str, Any]:
                 + ". Pass `index` instead of `name` to pick one.")
         target = matches[0]
     previous = getattr(APP.activeDocument, "name", None)
-    if target.name == previous:
+    if target == APP.activeDocument:
         return {"active": target.name, "changed": False,
                 "note": "that document was already active",
                 "design": design_digest()}
@@ -2926,6 +2975,7 @@ def write_file(arguments: dict[str, Any]) -> dict[str, Any]:
         # Writing without checking is how a broken generator ships. The
         # suite is fast; there is no reason to skip it.
         result["tests"] = workspace.run_tests()
+    tool_contracts.apply(TOOLS)
     return result
 
 
@@ -2955,3 +3005,107 @@ TOOLS["run_tests"] = {
 
 HANDLERS["write_file"] = write_file
 HANDLERS["run_tests"] = run_tests
+
+
+def feature_tree(arguments):
+    return editing.tree(_active_design(), arguments.get("component"))
+
+
+def inspect_entity(arguments):
+    design = _active_design()
+    return editing.row(design, editing.resolve(design, arguments["ref"]))
+
+
+def delete_entities(arguments):
+    return editing.delete(_active_design(), arguments["refs"])
+
+
+def edit_lattice(arguments):
+    import json
+    from checkpoints import Checkpoint
+    design = _active_design()
+    feature = editing.resolve(design, arguments["lattice_ref"])
+    attribute = feature.attributes.itemByName("fusion_cad_agent", "lattice")
+    if attribute is None:
+        raise ArgumentError("This feature has no managed lattice recipe; inspect and explicitly replace the old chain")
+    recipe = json.loads(attribute.value)
+    entities = []
+    for token in recipe["tokens"]:
+        found = design.findEntityByToken(token)
+        if len(found) != 1: raise ArgumentError("Lattice chain changed; inspect feature_tree")
+        entities.append(found[0])
+    references = [editing.ref(design, e) for e in entities]
+    editing.suffix(design, references)
+    params = {**recipe["arguments"], **{k: v for k, v in arguments.items() if k != "lattice_ref"}}
+    # Guard all pure geometry work before removing the old chain.
+    lattice_pockets({**params, "_preflight_only": True})
+    editing.delete(design, references)
+    checkpoint = Checkpoint(design, "replacement_lattice")
+    try:
+        result = lattice_pockets(params)
+    except Exception as exc:
+        checkpoint.rollback()
+        recovery = {"status": "partial", "restoration_verified": False,
+                    "cleanup": checkpoint.recovery, "reason": "Old feature identities were removed"}
+        if checkpoint.clean:
+            try:
+                restored = lattice_pockets(recipe["arguments"])
+                recovery.update(previous_recipe_rebuilt=True, lattice_ref=restored["lattice_ref"])
+            except Exception as restore_exc: recovery["rebuild_error"] = str(restore_exc)
+        exc.recovery = recovery
+        raise
+    result["replaced_refs"] = references
+    result["feature_tree"] = editing.tree(design)
+    return result
+
+
+def search_files(arguments):
+    return workspace.search_text(arguments["query"], arguments.get("directory", "."),
+                                 arguments.get("pattern", "*.py"), arguments.get("limit", 30))
+
+
+def patch_file(arguments):
+    result = workspace.patch_text(arguments["path"], arguments["old_text"],
+                                  arguments["new_text"], arguments["expected_sha256"])
+    if arguments.get("run_tests", True):
+        result["tests"] = workspace.run_tests(arguments.get("test_pattern", "test*.py"))
+    tool_contracts.apply(TOOLS)
+    return result
+
+
+def _register(name, handler, description, args, required=(), mutating=False):
+    TOOLS[name] = {"description": description, "mutating": mutating,
+                   "arguments": args, "required": list(required)}
+    HANDLERS[name] = _echo_state(handler) if mutating else handler
+
+
+_str = lambda description: {"type": "string", "description": description}
+_register("feature_tree", feature_tree, "Inspect native feature/sketch references, curve counts, health and profile dependencies.",
+          {"component": _str("Optional exact component name")})
+_register("inspect_entity", inspect_entity, "Inspect one native feature or sketch by its returned reference.",
+          {"ref": _str("Reference from feature_tree or created_entities")}, ["ref"])
+_register("delete_entities", delete_entities, "Delete explicit feature/sketch references in a complete trailing chain. Refuses implicit downstream deletion.",
+          {"refs": {"type": "array", "items": {"type": "string"}, "minItems": 1}}, ["refs"], True)
+_register("edit_lattice", edit_lattice, "Revise a managed lattice in place: switch sharp/sketch_rounding/feature_fillet and change dimensions. Removes its old owned chain; refuses unrelated downstream features.",
+          {"lattice_ref": _str("Cut feature reference returned by lattice_pockets")}, ["lattice_ref"], True)
+_register("search_files", search_files, "Bounded literal source search. Returns file/line matches for focused reads.",
+          {"query": _str("Literal text"), "directory": _str("Repository-relative or allowed absolute directory"),
+           "pattern": _str("Filename glob, default *.py"), "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, ["query"])
+_register("patch_file", patch_file, "Apply one exact source replacement guarded by the inspected file hash. Returns backup, tests, and activation requirements.",
+          {"path": _str("Repository-relative file"), "old_text": _str("Unique exact text to replace"),
+           "new_text": _str("Replacement text"), "expected_sha256": _str("sha256 from read_file"),
+           "run_tests": {"type": "boolean"}, "test_pattern": _str("Focused test filename glob")},
+          ["path", "old_text", "new_text", "expected_sha256"])
+
+# Reload data/contracts at the capability boundary; clients refresh after source writes.
+_importlib.reload(tool_contracts)
+tool_contracts.apply(TOOLS)
+TOOLS["undo_last"]["description"] = "Undo the last supported additive agent feature change synchronously. Refuses changed documents; never invokes global UI Undo."
+for _tool_name, _spec in TOOLS.items():
+    _handler = HANDLERS[_tool_name]
+    def _checked(arguments, handler=_handler, name=_tool_name):
+        tool_contracts.validate(arguments, TOOLS[name]["input_schema"])
+        return handler(arguments)
+    _checked.__name__ = _handler.__name__
+    _checked.__qualname__ = _handler.__qualname__
+    HANDLERS[_tool_name] = _checked

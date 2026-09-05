@@ -1,5 +1,12 @@
 # Runtime implementation: protocol v4
 
+The [agent interface validation](agent-interface-validation.md) documents the
+explicit schemas, entity references, managed lattice revision, scoped undo, and
+Studio loop built on this protocol. `undo_last` now completes synchronous native
+deletion of a supported agent-created trailing feature chain. It does not invoke
+Fusion's asynchronous global UI Undo. Native deletion and managed recipe recovery
+have narrower guarantees than arbitrary document restoration.
+
 Status: implemented, covered by offline tests, and smoke-tested in live Fusion
 on 2026-09-05. See [live results](live-runtime-validation.md) for the tested cases
 and remaining gates. The running add-in has loaded protocol v4. Future shell or

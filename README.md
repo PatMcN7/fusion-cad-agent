@@ -8,6 +8,12 @@ IDs for status/retry handling. After upgrading, restart the add-in and use the
 updated clients. See [runtime behavior and limits](docs/runtime.md), the
 [recovery audit](docs/mutation-audit.md), and [implementation progress](PLAN.md).
 
+The September 5 interface update adds explicit argument contracts, native feature
+references, managed lattice revisions, bounded source patches, and a smaller GLM
+agent loop. See [validation and measured results](docs/agent-interface-validation.md).
+Restart Studio after updating its Python files; geometry changes load on the
+next bridge request when the registered module changes.
+
 The premise: **the geometry kernel is already a compiler, and nobody is reading
 its output.** It knows a boolean produced two bodies, that a cut removed
 nothing, that two occurrences overlap by 4.2 cm3. Routing those signals back

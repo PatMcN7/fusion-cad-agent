@@ -95,25 +95,26 @@ conversation resets rather than silently corrupting.
 
 ### Confidence in each adapter
 
-The Anthropic adapter was written against a loaded, authoritative SDK reference
-and is exercised end to end. The OpenAI and Gemini adapters were written from
-their published APIs without a live key available here — the shapes follow the
-documented contracts and the pure logic is unit-tested, but **neither has made a
-real call.** Treat the first run against each as a test.
+The OpenAI-compatible adapter has now been exercised live with configured GLM
+worker and vision models. Adapter unit tests cover Anthropic and Gemini as well;
+the GLM measurements do not establish their live reliability or performance.
 
 ## Design notes
 
-**Tool schemas are generated, never written.** They come from the bridge's own
-`/v1/tools` registry, so a tool added to `tools.py` appears here on the next
-page load and cannot drift from its implementation. The bridge documents
-arguments in prose, so types are inferred conservatively — a wrong type is
-worse than an absent one, because it makes a correct value invalid.
+**Tool schemas are explicit.** The bridge's `/v1/tools` registry publishes
+`tool_schemas.json` contracts, including required fields and array item types.
+Both client and native dispatch validate them before execution. Studio begins
+with 12 tools and uses `load_tools` for additional groups and capability refresh.
 
-**The model sees what it built.** After every mutating call the harness captures
-the viewport and gives the model the image. Measurements confirm a model is
-self-consistent; only the picture shows it is the part that was asked for. That
-gap is what let an off-centre lattice and an unsupported pan edge through in
-earlier sessions.
+**The model checks the finished sequence.** It requests a clean capture with an
+expected stage after related mutations; the harness supplies one fallback review
+if needed before accepting a completion. Native feature inspection establishes
+sketch contents and health. Vision supplies uncertain observations, with its
+latency and token usage recorded separately.
+
+The GLM/OpenAI-compatible path uses a short prompt, bounded outputs, and
+retrievable older results. The live GLM revision replay and remaining limits
+are documented in [the interface validation report](../docs/agent-interface-validation.md).
 
 **A manual agent loop, not the SDK tool runner.** The server emits its own SSE
 protocol to the browser and injects images into tool results mid-loop; the

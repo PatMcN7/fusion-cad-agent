@@ -88,7 +88,7 @@ class ToolPreflightTests(unittest.TestCase):
         box = SimpleNamespace(minPoint=SimpleNamespace(x=0, y=0, z=0),
                               maxPoint=SimpleNamespace(x=8 * 2.54, y=6 * 2.54, z=0.635))
         body = SimpleNamespace(preciseBoundingBox=box, volume=100)
-        design = SimpleNamespace(rootComponent=object(), unitsManager=object())
+        design = SimpleNamespace(rootComponent=object(), unitsManager=object(), timeline=SimpleNamespace(count=0))
         def cm(units, value, name, **kwargs):
             return float(value.split()[0]) * 2.54
         for stagger, expected_ok in ((0.5, True), (0.0, False)):
@@ -118,7 +118,7 @@ class ToolPreflightTests(unittest.TestCase):
         box = SimpleNamespace(minPoint=SimpleNamespace(x=0, y=0, z=0),
                               maxPoint=SimpleNamespace(x=30 * 2.54, y=30 * 2.54, z=0.3))
         body = SimpleNamespace(preciseBoundingBox=box)
-        design = SimpleNamespace(rootComponent=object(), unitsManager=object())
+        design = SimpleNamespace(rootComponent=object(), unitsManager=object(), timeline=SimpleNamespace(count=0))
         def cm(units, value, name, **kwargs):
             return float(value.split()[0]) * 2.54
         for arguments in ({"cell_size": "1.5 in"},

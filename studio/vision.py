@@ -26,6 +26,7 @@ Two consequences worth stating:
 from __future__ import annotations
 
 import os
+import time
 
 from providers import Provider, ProviderError, build
 
@@ -42,11 +43,11 @@ make out, and say which are too small to read rather than guessing.
 
 For a Fusion viewport:
 
-Describe what is actually visible in at most six short lines:
+Describe what is actually visible in at most three short lines (80 words total):
 - the overall shape and roughly how many distinct bodies
 - any pattern or lattice: its cell shape, whether cells share vertices
-  (a true isogrid) or merely sit near each other (rows of separate holes),
-  and whether it is centred on the face
+  or form a staggered field. Ribs separate pockets; separated pocket vertices
+  do not by themselves prove a broken lattice. Perspective cannot measure centering.
 - anything that looks wrong: asymmetry, a feature that did not appear,
   parts intersecting, a cut in the wrong direction, an off-centre field
 
@@ -55,7 +56,12 @@ you see against them and say plainly whether they match.
 
 Report only what you can see. Do not guess dimensions beyond comparing against
 what was asked for, do not offer next steps, do not congratulate. If something
-looks wrong, lead with it."""
+looks wrong, report it as an observation with uncertainty. White dots and blue
+lines may be sketch/selection overlays, not geometry. A viewport cannot prove
+whether rounding lives in a sketch or a fillet feature: request native curve
+counts/feature evidence. Do not criticize features intentionally absent at the
+current stage. Small radii that are not resolved in the image are uncertain,
+not proof of a missing fillet."""
 
 
 def _noop(event: str, data) -> None:
@@ -87,11 +93,17 @@ class Describer:
         return self._provider
 
     def describe(self, image_b64: str, note: str = "",
-                 media_type: str = "image/png") -> str:
+                 media_type: str = "image/png", emit=None) -> str:
         """One image in, a few lines out. Never raises: this rides on a
         tool result, and a description failing must not fail the build."""
+        started = time.monotonic()
+        first = None
+        def observe(event, data):
+            nonlocal first
+            if first is None and event in {"text", "thinking"}: first = time.monotonic()-started
         try:
             provider = self._ready()
+            provider.max_output_tokens = int(os.environ.get("STUDIO_VISION_MAX_TOKENS", "700"))
             # Fresh history every time. The whole point is that this call
             # never accumulates -- and independent looks do not bias each
             # other toward "same as before".
@@ -100,12 +112,16 @@ class Describer:
             if note:
                 blocks.append({"type": "text", "text": note})
             provider.add_user(blocks)
-            turn = provider.stream(PROMPT, [], _noop)
+            turn = provider.stream(PROMPT, [], observe)
+            if emit and turn.usage: emit("vision_usage", turn.usage)
             return turn.text.strip()
         except ProviderError as exc:
             return f"[vision unavailable: {exc}]"
         except Exception as exc:  # a vendor SDK failing mid-stream
             return f"[vision failed: {exc.__class__.__name__}: {exc}]"
+        finally:
+            if emit: emit("provider_timing", {"role": "vision", "seconds": time.monotonic()-started,
+                                               "first_token_seconds": first})
 
 
 def from_environment() -> tuple[Describer | None, str]:

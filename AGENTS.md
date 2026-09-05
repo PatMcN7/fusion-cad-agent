@@ -2,8 +2,8 @@
 
 You are driving a **live Autodesk Fusion session** through a local bridge. The
 tools operate on whatever document is open on the person's screen right now.
-This file is the shared brief: the MCP server and the studio both load it, so
-there is one description of how to work here rather than three that drift.
+This file is the repository and MCP brief. Studio starts with the compact
+`studio/agent_runtime.py` prompt and loads source guidance only when needed.
 
 ## Orient before you build
 
@@ -68,7 +68,9 @@ is not recoverable — which arrangement of four modules, not what fillet radius
 to use. Ask everything at once, then build.
 
 **Look at what you made** once the geometry is there, not before each step.
-`capture_viewport` with `views: ["current"]` shows the person's exact framing.
+`capture_viewport` with `views: ["current"], fit: false` shows the person's exact framing.
+Use `clean: true` to temporarily hide sketches, then restore their visibility;
+use a top view for planar layout and describe the expected completed stage.
 Say what you actually see; if it disagrees with what you expected, say so.
 
 ## Reading the verification block
@@ -101,14 +103,31 @@ Rounded pocket corners multiply curve counts. Suggest larger cells, a smaller
 patterned area, or fewer corner segments when appropriate; do not silently
 change the requested dimensions to make the guard pass.
 
-If the part will be cut on a router or a mill, pass `cutter_diameter` to
-`lattice_pockets` — `"0.125 in"` for a 1/8" end mill. Pocket corners are then
-generated already rounded to the tool radius, so the model matches what the
-machine can actually produce and no second filleting pass is needed. Without
-it, `corners_machinable` warns and the sharp corners stand, which is correct
-for waterjet, wire EDM and printing.
+For a router or mill, pass `cutter_diameter` to `lattice_pockets`, for example
+`"0.125 in"`. Choose `corner_mode: "feature_fillet"` for straight triangles
+and a separate native fillet, or `"sketch_rounding"` for rounded sketch geometry.
+The latter is the compatibility default when a cutter is supplied. `"sharp"`
+leaves sharp corners and reports machining limitations.
 
 Ask which it is when it matters and has not been said. It changes the geometry.
+
+## Revising native features
+
+Use returned `lattice_ref` with `edit_lattice` to replace a managed lattice's
+sketch, cut, and optional fillet together. Inspect `feature_tree` or
+`inspect_entity` for references, native curve counts, visibility, and health.
+Rounded sketches use chord segments, so zero arcs alone does not prove sharp
+triangles: inspect the generated representation and non-reference line count.
+
+References belong to the current open document and add-in session. Deletion
+requires an explicitly selected complete trailing timeline chain; unrelated
+later features are never silently included. `edit_lattice` currently requires
+that same latest-chain condition and a recipe created by the new lattice tool.
+It does not convert arbitrary older unmanaged features automatically.
+
+`undo_last` synchronously deletes only the last supported additive agent feature
+change, after checking the observed native state. It is not global Fusion UI
+Undo. Changes to preexisting geometry cannot be reversed by this mechanism.
 
 ## Finding things
 
@@ -172,14 +191,15 @@ Escalate in this order, and say which rung you are on.
 
 3. **Write the tool yourself.**
 
-   If no tool does the job, `write_file` adds one and it is callable on the
-   very next request — the geometry modules re-import on each call, so there
-   is no restart and no redeploy. Read the neighbouring code with
-   `read_file`, follow its shape, append the function plus its `TOOLS` and
-   `HANDLERS` entries, and call it.
-
-   This is a normal thing to do, not a last resort. A missing tool is a gap
-   in the library, and the fix takes one call.
+   Keep project-specific code in `recipes/`; it currently requires explicit
+   integration, not an automatic recipe runner. Read neighboring symbols with
+   `read_file(symbol=...)` or line ranges. Use `search_files` for focused search
+   and `patch_file` with the returned SHA-256 for a small exact replacement.
+   Use `write_file` for new files or intentional whole-file replacements.
+   Register handlers with explicit JSON Schema in `tool_schemas.json` or an
+   `input_schema`; never infer argument types from English descriptions.
+   Read the returned activation requirement. Studio and shared client changes
+   require restarting that client; registered geometry reloads on the next call.
 
    Python that does not parse is refused before it is written, and the
    previous contents are backed up. `run_tests` checks you did not break a

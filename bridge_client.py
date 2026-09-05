@@ -8,6 +8,7 @@ once rather than drifting in two places.
 from __future__ import annotations
 
 import json
+import copy
 import uuid
 import urllib.error
 import urllib.request
@@ -16,6 +17,8 @@ from typing import Any
 from common import load_or_create_token, read_connection_info
 from execution import operation_id as validate_operation_id
 from errors import ProtocolError
+from errors import ArgumentError
+from tool_contracts import validate, version
 
 REQUEST_TIMEOUT = 310
 CONTROL_TOOLS = {
@@ -42,6 +45,7 @@ class Bridge:
         self._unresolved = None
         self._document_id = None
         self._submitted = {}
+        self.capability_version = None
 
     def _request(self, method: str, path: str, payload: dict | None = None) -> dict:
         try:
@@ -83,6 +87,7 @@ class Bridge:
         if self._document_id is None:
             self._document_id = response.get("document_id")
         self._registry = {**response.get("tools", {}), **CONTROL_TOOLS}
+        self.capability_version = version(self._registry)
         return dict(self._registry)
 
     def operation_status(self, identifier: str) -> dict:
@@ -128,6 +133,13 @@ class Bridge:
         if operation_id is not None and argument_id is not None and operation_id != argument_id:
             return {"ok": False, "error": {"code": "bad_request", "message": "Conflicting operation IDs"}}
         identifier = operation_id if operation_id is not None else argument_id
+        spec = (self._registry or {}).get(tool, {})
+        if spec.get("input_schema"):
+            try:
+                validate(arguments, spec["input_schema"])
+            except ArgumentError as exc:
+                return {"ok": False, "error": {"code": exc.code, "message": str(exc),
+                        "context": exc.context, "execution_started": False}}
         if confirm:
             if identifier is None:
                 identifier = uuid.uuid4().hex
@@ -214,7 +226,13 @@ def property_schema(description: Any) -> dict[str, Any]:
     schema: dict[str, Any] = {"description": description}
     if "default true" in lowered or "default false" in lowered:
         schema["type"] = "boolean"
-    elif "[l, w, h]" in lowered or "list of three" in lowered or lowered.startswith("list "):
+    # String-list conventions. "non-empty list of ..." must be caught here
+    # before the fallthrough: it does not start with "list ", so previously it
+    # was inferred as a string and arrays were rejected by schema validation
+    # before the tool ever saw them (delete_named_features).
+    elif ("[l, w, h]" in lowered or "list of three" in lowered
+          or lowered.startswith("list ")
+          or "list of " in lowered):
         schema["type"] = "array"
         schema["items"] = {"type": "string"}
     elif "default '" in lowered or "unit expression" in lowered or "e.g." in lowered:
@@ -231,7 +249,8 @@ def tool_schemas(registry: dict[str, Any]) -> list[dict[str, Any]]:
     """Registry -> JSON Schema tool definitions, generated not hand-written."""
     tools = []
     for name, spec in sorted(registry.items()):
-        properties = {
+        schema = copy.deepcopy(spec.get("input_schema"))
+        properties = schema["properties"] if schema else {
             key: property_schema(text if isinstance(text, dict) else str(text))
             for key, text in (spec.get("arguments") or {}).items()
         }
@@ -250,6 +269,6 @@ def tool_schemas(registry: dict[str, Any]) -> list[dict[str, Any]]:
             "name": name,
             "description": description,
             "mutating": bool(spec.get("mutating")),
-            "input_schema": {"type": "object", "properties": properties},
+            "input_schema": {**(schema or {"type": "object"}), "properties": properties},
         })
     return tools

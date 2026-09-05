@@ -111,7 +111,10 @@ def resolve(raw: str, *, must_exist: bool = True) -> pathlib.Path:
     try:
         # Resolve first: a symlink out of the fence must be caught by where it
         # points, not by how it is spelled.
-        path = pathlib.Path(raw).expanduser().resolve()
+        path = pathlib.Path(raw).expanduser()
+        if not path.is_absolute():
+            path = pathlib.Path(__file__).resolve().parent / path
+        path = path.resolve()
     except (OSError, RuntimeError) as exc:
         raise ArgumentError(f"cannot resolve {raw!r}: {exc}") from exc
 
@@ -166,20 +169,61 @@ def list_dir(raw: str, pattern: str = "*", limit: int = 200,
             "count": len(entries), "truncated": truncated}
 
 
-def read_text(raw: str, max_bytes: int = MAX_READ_BYTES) -> dict:
+def read_text(raw: str, max_bytes: int = 12000, *, start_line: int = 1,
+              end_line: int | None = None, symbol: str | None = None) -> dict:
+    import ast
+    import hashlib
     path = resolve(raw)
     if not path.is_file():
         raise ArgumentError(f"{path} is not a file")
     size = path.stat().st_size
     try:
-        data = path.read_bytes()[:max_bytes]
+        if size > 2_000_000:
+            raise ArgumentError("Text inspection is limited to files below 2 MB")
+        data = path.read_bytes()
         text = data.decode("utf-8")
     except UnicodeDecodeError:
         raise ArgumentError(
             f"{path.name} is not text. If it is a drawing, fetch_url or "
             "pdf_to_images can turn a PDF into pictures the vision model reads.")
-    return {"path": str(path), "bytes": size, "truncated": size > max_bytes,
-            "text": text}
+    lines = text.splitlines(keepends=True)
+    if symbol:
+        tree = ast.parse(text)
+        nodes = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.name == symbol]
+        if len(nodes) != 1:
+            raise ArgumentError(f"Expected one symbol {symbol!r}, found {len(nodes)}; use line ranges")
+        start_line, end_line = nodes[0].lineno, nodes[0].end_lineno
+    if start_line < 1 or (end_line is not None and end_line < start_line):
+        raise ArgumentError("Line ranges are one-based and increasing")
+    max_bytes = max(1, min(max_bytes, 20000))
+    selected = ''.join(lines[start_line - 1:end_line])
+    excerpt = selected.encode()[:max_bytes].decode('utf-8', 'ignore')
+    return {"path": str(path), "bytes": size, "sha256": hashlib.sha256(data).hexdigest(),
+            "start_line": start_line, "end_line": start_line + excerpt.count('\n'),
+            "total_lines": len(lines), "truncated": len(excerpt) < len(selected),
+            "text": excerpt, "retrieval": "Use start_line/end_line or symbol for another excerpt"}
+
+
+def search_text(query: str, directory: str = ".", pattern: str = "*.py", limit: int = 30) -> dict:
+    if not query or len(query) > 200: raise ArgumentError("query must contain 1-200 characters")
+    root = resolve(directory)
+    matches, scanned = [], 0
+    for base, dirs, files in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not d.startswith('.'))
+        for name in sorted(files):
+            if not fnmatch.fnmatch(name, pattern): continue
+            scanned += 1
+            if scanned > 500: return {"matches": matches, "truncated": True, "reason": "500-file scan limit"}
+            try:
+                path = resolve(str(pathlib.Path(base) / name))
+                if path.stat().st_size > 2_000_000: continue
+                lines = path.read_text().splitlines()
+            except (ArgumentError, UnicodeError, OSError): continue
+            for number, line in enumerate(lines, 1):
+                if query in line:
+                    matches.append({"path": str(path), "line": number, "text": line[:300]})
+                    if len(matches) >= min(limit, 100): return {"matches": matches, "truncated": True}
+    return {"matches": matches, "truncated": False}
 
 
 # ---- network ---------------------------------------------------------------
@@ -337,7 +381,7 @@ def _snapshot(path: pathlib.Path) -> str | None:
         return None
     import time
 
-    stamp = time.strftime("%Y%m%d-%H%M%S")
+    stamp = time.strftime("%Y%m%d-%H%M%S") + f"-{time.time_ns()}"
     copy = backup_dir() / f"{path.name}.{stamp}.bak"
     copy.write_bytes(path.read_bytes())
     existing = sorted(backup_dir().glob(f"{path.name}.*.bak"))
@@ -385,6 +429,14 @@ def write_text(raw: str, content: str) -> dict:
         raise ArgumentError("content must be a string")
     path = resolve_writable(raw)
 
+    if path.name == "tool_schemas.json":
+        import json
+        from tool_contracts import check_contracts
+        try:
+            check_contracts(json.loads(content))
+        except (ValueError, TypeError) as exc:
+            raise ArgumentError(f"refusing invalid tool contracts: {exc}") from exc
+
     if path.suffix == ".py":
         import ast
 
@@ -398,9 +450,31 @@ def write_text(raw: str, content: str) -> dict:
 
     backup = _snapshot(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    import tempfile
+    import hashlib
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as handle:
+        handle.write(content)
+        temporary = pathlib.Path(handle.name)
+    if path.exists(): temporary.chmod(path.stat().st_mode)
+    temporary.replace(path)
+    frontend = path.name == "bridge_client.py" or "studio" in path.relative_to(REPO).parts
     return {"path": str(path), "bytes": len(content.encode("utf-8")),
-            "created": backup is None, "backup": backup}
+            "sha256": hashlib.sha256(content.encode()).hexdigest(),
+            "created": backup is None, "backup": backup,
+            "activation": "restart_studio_or_mcp_client" if frontend else "next_tool_request_for_registered_geometry_modules; other modules require explicit import",
+            "capabilities_changed": True}
+
+
+def patch_text(raw: str, old: str, new: str, expected_sha256: str) -> dict:
+    import hashlib
+    path = resolve_writable(raw)
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != expected_sha256:
+        raise ArgumentError("File changed since inspection; read it again before patching")
+    text = data.decode('utf-8')
+    if not old or text.count(old) != 1:
+        raise ArgumentError("old_text must match exactly once; include more context")
+    return write_text(raw, text.replace(old, new, 1))
 
 
 def _clean_env() -> dict:

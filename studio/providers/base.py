@@ -36,9 +36,12 @@ class ToolSpec:
     description: str
     properties: dict[str, dict[str, Any]]
     required: list[str] = field(default_factory=list)
+    additional_properties: bool = False
 
     def json_schema(self) -> dict[str, Any]:
         schema: dict[str, Any] = {"type": "object", "properties": self.properties}
+        if not self.additional_properties:
+            schema["additionalProperties"] = False
         if self.required:
             schema["required"] = self.required
         return schema
@@ -64,7 +67,7 @@ class ToolResult:
     # an image does not.
     description: str | None = None
 
-    def as_text(self, limit: int = 24000) -> str:
+    def as_text(self, limit: int = 8000) -> str:
         body = truncate(self.payload, limit)
         if not self.description:
             return body
@@ -193,8 +196,20 @@ def user_blocks(text: str = "",
 
 def truncate(payload: Any, limit: int = 24000) -> str:
     import json
-
     text = json.dumps(payload, default=str)
     if len(text) <= limit:
         return text
-    return text[:limit] + f"\n...[truncated, {len(text)} chars total]"
+    # Keep valid JSON and a retrieval handle; never slice serialized syntax.
+    def bound(value, size):
+        if isinstance(value, str): return value if len(value) <= size else value[:size] + "…[truncated]"
+        if isinstance(value, list): return [bound(v, size) for v in value[:12]] + ([{"omitted_items": len(value)-12}] if len(value)>12 else [])
+        if isinstance(value, dict): return {k: bound(v, size) for k,v in value.items()}
+        return value
+    for size in (1000, 300, 80):
+        result = bound(payload, size)
+        if isinstance(result, dict): result["truncated"] = True
+        candidate = json.dumps(result, default=str)
+        if len(candidate) <= limit: return candidate
+    return json.dumps({"truncated": True, "result_ref": payload.get("result_ref") if isinstance(payload, dict) else None,
+                       "available_fields": list(payload)[:30] if isinstance(payload, dict) else [],
+                       "message": "Retrieve a specific field with get_result"})

@@ -1,0 +1,1249 @@
+{
+  "health": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "active_document": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "save_document": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "Optional version description."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "delete_named_features": {
+    "type": "object",
+    "properties": {
+      "feature_names": {
+        "type": "array",
+        "description": "Non-empty list of exact feature names.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sketch_names": {
+        "type": "array",
+        "description": "Optional list of exact unused sketch names.",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "set_6061_material": {
+    "type": "object",
+    "properties": {
+      "body_names": {
+        "type": "array",
+        "description": "Non-empty list of exact body names.",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "required": [
+      "body_names"
+    ],
+    "additionalProperties": false
+  },
+  "router_fillet_pocket_corners": {
+    "type": "object",
+    "properties": {
+      "body": {
+        "type": "string",
+        "description": "Exact target body name."
+      },
+      "cutter_diameter": {
+        "type": "string",
+        "description": "Fusion expression; default '0.125 in'."
+      },
+      "rib_width_in": {
+        "type": "number",
+        "description": "Rib width in inches for the machining report; default 0.25."
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional feature name."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "import_step_component": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to a .step or .stp file."
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional grouped component name."
+      },
+      "flatten_into_root": {
+        "type": "boolean",
+        "description": "Default false; use true for Part Design documents."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "design_summary": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "check_interference": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "verify_spec": {
+    "type": "object",
+    "properties": {
+      "envelope": {
+        "type": "array",
+        "description": "Optional [l, w, h] the assembly bounding box must fit inside.",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "maxItems": 3
+      },
+      "dimensions": {
+        "type": "array",
+        "description": "Optional exact [l, w, h] for the assembly bounding box.",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "maxItems": 3
+      },
+      "body_count": {
+        "type": "integer",
+        "description": "Optional expected number of bodies.",
+        "minimum": 0
+      },
+      "centered_on_origin": {
+        "type": "boolean",
+        "description": "Optional; assert the assembly is centred in X and Y."
+      },
+      "max_mass_kg": {
+        "type": "number",
+        "description": "Optional mass ceiling in kilograms."
+      },
+      "density_g_cm3": {
+        "type": "number",
+        "description": "Density for the mass estimate; default 2.70."
+      },
+      "tolerance_cm": {
+        "type": "number",
+        "description": "Tolerance for dimension and centring checks; default 1e-6."
+      },
+      "require_single_solid": {
+        "type": "boolean",
+        "description": "Default false."
+      },
+      "require_no_interference": {
+        "type": "boolean",
+        "description": "Default false."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "capture_viewport": {
+    "type": "object",
+    "properties": {
+      "views": {
+        "type": "array",
+        "description": "List of views. 'current' captures the person's screen exactly as framed, without moving the camera or re-zooming -- use it whenever they refer to what they can see. Named orientations: top, bottom, front, back, left, right, iso, iso_top_left, iso_bottom_right. Several may be requested at once. Default ['iso'].",
+        "items": {
+          "type": "string"
+        }
+      },
+      "width": {
+        "type": "integer",
+        "description": "Pixels, 64-4096; default 1600.",
+        "minimum": 64,
+        "maximum": 4096
+      },
+      "height": {
+        "type": "integer",
+        "description": "Pixels, 64-4096; default 1200.",
+        "minimum": 64,
+        "maximum": 4096
+      },
+      "visual_style": {
+        "type": "string",
+        "description": "shaded | shaded_edges | shaded_hidden_edges | wireframe | wireframe_hidden.",
+        "enum": [
+          "shaded",
+          "shaded_edges",
+          "shaded_hidden_edges",
+          "wireframe",
+          "wireframe_hidden"
+        ]
+      },
+      "fit": {
+        "type": "boolean",
+        "description": "Zoom to fit. Defaults false for 'current' (keeps their framing) and true for a named orientation."
+      },
+      "prefix": {
+        "type": "string",
+        "description": "Filename prefix; default 'capture'."
+      },
+      "clean": {
+        "type": "boolean",
+        "description": "Temporarily hide sketches and restore visibility after capture."
+      },
+      "expected_stage": {
+        "type": "string",
+        "description": "What should be visible now; include unfinished later stages."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "inspect_threads": {
+    "type": "object",
+    "properties": {
+      "diameter": {
+        "type": "string",
+        "description": "Default '0.125 in'."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "inspect_commands": {
+    "type": "object",
+    "properties": {
+      "contains": {
+        "type": "string",
+        "description": "Optional substring filter."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "create_test_box": {
+    "type": "object",
+    "properties": {
+      "width": {
+        "type": "string",
+        "description": "X size in the sketch plane, e.g. 8 in."
+      },
+      "height": {
+        "type": "string",
+        "description": "Y size in the sketch plane, e.g. 6 in. Not plate thickness."
+      },
+      "depth": {
+        "type": "string",
+        "description": "Z extrusion thickness, e.g. 0.25 in for a quarter-inch plate."
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "replace_with_isogrid_bar": {
+    "type": "object",
+    "properties": {
+      "length": {
+        "type": "string",
+        "description": "default '12 in'"
+      },
+      "width": {
+        "type": "string",
+        "description": "default '4 in'"
+      },
+      "thickness": {
+        "type": "string",
+        "description": "default '2 in'"
+      },
+      "cell_size": {
+        "type": "string",
+        "description": "default '1.0 in'"
+      },
+      "rib_width": {
+        "type": "string",
+        "description": "default '0.1 in'"
+      },
+      "skin_thickness": {
+        "type": "string",
+        "description": "default '0.25 in'; '0 in' cuts through."
+      },
+      "fillet_radius": {
+        "type": "string",
+        "description": "default '0.03 in'"
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "create_tube_frame": {
+    "type": "object",
+    "properties": {
+      "tube_length": {
+        "type": "string",
+        "description": "default '25 in'"
+      },
+      "tube_wide": {
+        "type": "string",
+        "description": "default '2 in'"
+      },
+      "tube_narrow": {
+        "type": "string",
+        "description": "default '1 in'"
+      },
+      "wall": {
+        "type": "string",
+        "description": "default '0.125 in'"
+      },
+      "frame_size": {
+        "type": "string",
+        "description": "default '30 in'"
+      },
+      "justify": {
+        "type": "string",
+        "description": "outer | center | inner",
+        "enum": [
+          "outer",
+          "center",
+          "inner"
+        ]
+      },
+      "orientation": {
+        "type": "string",
+        "description": "wide_vertical | wide_horizontal",
+        "enum": [
+          "wide_vertical",
+          "wide_horizontal"
+        ]
+      },
+      "hole_diameter": {
+        "type": "string",
+        "description": "default '0.125 in'"
+      },
+      "wide_holes_per_inch": {
+        "type": "number",
+        "description": "default 3; 0 leaves the wide faces unpunched"
+      },
+      "narrow_holes_per_inch": {
+        "type": "number",
+        "description": "default 1; 0 leaves the narrow faces unpunched"
+      },
+      "use_active_document": {
+        "type": "boolean",
+        "description": "default false; requires the active design to be empty"
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "add_bellypan": {
+    "type": "object",
+    "properties": {
+      "thickness": {
+        "type": "string",
+        "description": "default '0.125 in'"
+      },
+      "pan_size": {
+        "type": "string",
+        "description": "default '30 in'"
+      },
+      "cell_size": {
+        "type": "string",
+        "description": "default '3 in'"
+      },
+      "rib_width": {
+        "type": "string",
+        "description": "default '0.25 in'"
+      },
+      "border": {
+        "type": "string",
+        "description": "solid band for the bolt pattern; default '2 in'"
+      },
+      "hole_clearance": {
+        "type": "string",
+        "description": "material kept around each bolt; default '0.25 in'"
+      },
+      "skeletonize": {
+        "type": "boolean",
+        "description": "Cut through; default true."
+      },
+      "expected_holes": {
+        "type": "integer",
+        "description": "Optional assertion on the derived bolt count.",
+        "minimum": 0
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "add_fasteners": {
+    "type": "object",
+    "properties": {
+      "screw_diameter": {
+        "type": "string",
+        "description": "default '0.125 in' (#5-40)"
+      },
+      "clearance_diameter": {
+        "type": "string",
+        "description": "default '0.136 in'"
+      },
+      "head_diameter": {
+        "type": "string",
+        "description": "default '0.183 in'"
+      },
+      "head_height": {
+        "type": "string",
+        "description": "default '0.125 in'"
+      },
+      "screw_length": {
+        "type": "string",
+        "description": "default '0.375 in'"
+      },
+      "thread_family": {
+        "type": "string",
+        "description": "default 'unified' (ANSI inch)"
+      },
+      "expected_designation": {
+        "type": "string",
+        "description": "Optional, e.g. '5-40 UNC'."
+      },
+      "modeled_threads": {
+        "type": "boolean",
+        "description": "default false"
+      },
+      "thread_screws": {
+        "type": "boolean",
+        "description": "default true"
+      },
+      "pan_name": {
+        "type": "string",
+        "description": "default 'Belly Pan'"
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "undo_last": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "mechanics_report": {
+    "type": "object",
+    "properties": {
+      "body": {
+        "type": "string",
+        "description": "Body name; defaults to the first body."
+      },
+      "axis": {
+        "type": "string",
+        "description": "Prismatic axis of the member: x, y or z. Default x.",
+        "enum": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      "material": {
+        "type": "string",
+        "description": "One of 1018, 2024-T3, 4130, 6061-T6, 7075-T6, PLA, Ti-6Al-4V."
+      },
+      "section": {
+        "type": "object",
+        "description": "{type: rect|rect_tube|round_tube|plate, ...dimensions in inches}",
+        "properties": {
+          "width": {
+            "type": "number",
+            "minimum": 0
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0
+          },
+          "wall": {
+            "type": "number",
+            "minimum": 0
+          },
+          "diameter": {
+            "type": "number",
+            "minimum": 0
+          },
+          "thickness": {
+            "type": "number",
+            "minimum": 0
+          },
+          "length": {
+            "type": "number",
+            "minimum": 0
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "rect",
+              "rect_tube",
+              "round_tube",
+              "plate"
+            ]
+          },
+          "outer_diameter": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ]
+      },
+      "span": {
+        "type": "number",
+        "description": "Optional span in inches for a beam case."
+      },
+      "load": {
+        "type": "number",
+        "description": "Optional load in pounds."
+      },
+      "case": {
+        "type": "string",
+        "description": "cantilever_point | cantilever_udl | simply_supported_point | simply_supported_udl | fixed_fixed_point"
+      },
+      "holes": {
+        "type": "object",
+        "description": "{diameter, edge_distance, pitch, wall} in inches.",
+        "properties": {
+          "diameter": {
+            "type": "number",
+            "minimum": 0
+          },
+          "edge_distance": {
+            "type": "number",
+            "minimum": 0
+          },
+          "pitch": {
+            "type": "number",
+            "minimum": 0
+          },
+          "wall": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "threads": {
+        "type": "object",
+        "description": "{diameter, engagement, into} in inches.",
+        "properties": {
+          "diameter": {
+            "type": "number",
+            "minimum": 0
+          },
+          "engagement": {
+            "type": "number",
+            "minimum": 0
+          },
+          "into": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "machining": {
+        "type": "object",
+        "description": "{depth, wall, internal_radius} in inches.",
+        "properties": {
+          "depth": {
+            "type": "number",
+            "minimum": 0
+          },
+          "wall": {
+            "type": "number",
+            "minimum": 0
+          },
+          "internal_radius": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "plate": {
+        "type": "object",
+        "description": "{span, thickness, overhang} in inches.",
+        "properties": {
+          "span": {
+            "type": "number",
+            "minimum": 0
+          },
+          "thickness": {
+            "type": "number",
+            "minimum": 0
+          },
+          "overhang": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "buckling_length": {
+        "type": "number",
+        "description": "Optional column length in inches."
+      },
+      "end_fixity": {
+        "type": "number",
+        "description": "K factor; 1.0 pinned, 0.5 fixed, 2.0 free. Default 1.0."
+      }
+    },
+    "required": [
+      "section"
+    ],
+    "additionalProperties": false
+  },
+  "cut_polygons": {
+    "type": "object",
+    "properties": {
+      "polygons": {
+        "type": "array",
+        "description": "Closed polygons as [[ [x,y], [x,y], ... ], ...] in `units`. Do not repeat the first point; the loop is closed for you. Polygons must not overlap each other -- that is checked before anything is built.",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 3
+        }
+      },
+      "units": {
+        "type": "string",
+        "description": "Coordinate units: in, mm, cm, m. Default in.",
+        "enum": [
+          "in",
+          "mm",
+          "cm",
+          "m"
+        ]
+      },
+      "depth": {
+        "type": "string",
+        "description": "Cut depth as a unit expression, e.g. '0.5 in'."
+      },
+      "through": {
+        "type": "boolean",
+        "description": "Cut clean through the body; default false."
+      },
+      "plane": {
+        "type": "string",
+        "description": "Where to sketch: 'top' (default), 'bottom', 'xy', or 'z=<number>'."
+      },
+      "body": {
+        "type": "string",
+        "description": "Target body name; defaults to the first body."
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional feature name."
+      }
+    },
+    "required": [
+      "polygons"
+    ],
+    "additionalProperties": false
+  },
+  "extrude_polygons": {
+    "type": "object",
+    "properties": {
+      "polygons": {
+        "type": "array",
+        "description": "Closed polygons as [[ [x,y], [x,y], ... ], ...] in `units`. Do not repeat the first point; the loop is closed for you. Polygons must not overlap each other -- that is checked before anything is built.",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 3
+        }
+      },
+      "units": {
+        "type": "string",
+        "description": "Coordinate units: in, mm, cm, m. Default in.",
+        "enum": [
+          "in",
+          "mm",
+          "cm",
+          "m"
+        ]
+      },
+      "height": {
+        "type": "string",
+        "description": "Extrusion height as a unit expression, e.g. '1 in'."
+      },
+      "base": {
+        "type": "string",
+        "description": "Z height of the sketch plane; default '0 in'."
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional body name."
+      }
+    },
+    "required": [
+      "polygons",
+      "height"
+    ],
+    "additionalProperties": false
+  },
+  "lattice_pockets": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "isogrid | hex. Default isogrid.",
+        "enum": [
+          "isogrid",
+          "hex"
+        ]
+      },
+      "cell_size": {
+        "type": "string",
+        "description": "default '1 in'"
+      },
+      "rib_width": {
+        "type": "string",
+        "description": "default '0.1 in'"
+      },
+      "margin": {
+        "type": "string",
+        "description": "Solid band at the edges; defaults to rib_width."
+      },
+      "skin_thickness": {
+        "type": "string",
+        "description": "Uncut floor; '0 in' cuts through. Default '0 in'."
+      },
+      "row_stagger": {
+        "type": "number",
+        "description": "isogrid only: fraction of a cell each row shifts sideways. Default 0.5, which is what makes the field tessellate (six triangles per vertex). 0 gives independent rows separated by horizontal rib bands."
+      },
+      "row_pitch": {
+        "type": "number",
+        "description": "isogrid only: multiplier on row spacing. Default 1."
+      },
+      "include_inverted": {
+        "type": "boolean",
+        "description": "isogrid only: include inverted triangles. Default true."
+      },
+      "rotation_degrees": {
+        "type": "number",
+        "description": "Rotate the field. Default 0."
+      },
+      "body": {
+        "type": "string",
+        "description": "Target body name; defaults to the first body."
+      },
+      "result_name": {
+        "type": "string",
+        "description": "Optional new name for the pocketed target body."
+      },
+      "cutter_diameter": {
+        "type": "string",
+        "description": "Round pocket corners for this router/end-mill, e.g. '0.125 in'. Omit for sharp corners."
+      },
+      "corner_segments": {
+        "type": "integer",
+        "description": "Chord segments per rounded corner. Default 6.",
+        "minimum": 2,
+        "maximum": 64
+      },
+      "corner_mode": {
+        "type": "string",
+        "enum": [
+          "sharp",
+          "sketch_rounding",
+          "feature_fillet"
+        ],
+        "description": "Native sketch representation: feature_fillet keeps triangle lines and adds a separate fillet feature."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "list_joint_candidates": {
+    "type": "object",
+    "properties": {
+      "occurrence": {
+        "type": "string",
+        "description": "Optional name filter."
+      },
+      "max_faces": {
+        "type": "integer",
+        "description": "Cylinder radii to sample per body. Default 8.",
+        "minimum": 1
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "create_joint": {
+    "type": "object",
+    "properties": {
+      "move": {
+        "type": "string",
+        "description": "Name of the occurrence that moves."
+      },
+      "to": {
+        "type": "string",
+        "description": "Name of the occurrence it mates to."
+      },
+      "move_face": {
+        "type": "object",
+        "description": "Which face to mate. Same vocabulary as cuts.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "planar",
+              "cylindrical",
+              "any"
+            ],
+            "description": "Face type. Default planar."
+          },
+          "body": {
+            "type": "string",
+            "description": "Body name, if the component has several."
+          },
+          "facing": {
+            "type": "string",
+            "description": "Signed outward normal, e.g. '+z'."
+          },
+          "normal_axis": {
+            "type": "string",
+            "description": "Unsigned normal axis, e.g. 'z'."
+          },
+          "axis_along": {
+            "type": "string",
+            "description": "Cylinder axis, e.g. 'x'."
+          },
+          "radius": {
+            "type": "number",
+            "description": "Cylinder radius in cm."
+          },
+          "extreme": {
+            "type": "string",
+            "description": "Outermost in a direction, e.g. '-x'."
+          }
+        }
+      },
+      "to_face": {
+        "type": "object",
+        "description": "Which face to mate. Same vocabulary as cuts.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "planar",
+              "cylindrical",
+              "any"
+            ],
+            "description": "Face type. Default planar."
+          },
+          "body": {
+            "type": "string",
+            "description": "Body name, if the component has several."
+          },
+          "facing": {
+            "type": "string",
+            "description": "Signed outward normal, e.g. '+z'."
+          },
+          "normal_axis": {
+            "type": "string",
+            "description": "Unsigned normal axis, e.g. 'z'."
+          },
+          "axis_along": {
+            "type": "string",
+            "description": "Cylinder axis, e.g. 'x'."
+          },
+          "radius": {
+            "type": "number",
+            "description": "Cylinder radius in cm."
+          },
+          "extreme": {
+            "type": "string",
+            "description": "Outermost in a direction, e.g. '-x'."
+          }
+        }
+      },
+      "motion": {
+        "type": "string",
+        "description": "rigid, revolute, slider, cylindrical, planar or ball. Default rigid.",
+        "enum": [
+          "rigid",
+          "revolute",
+          "slider",
+          "cylindrical",
+          "planar",
+          "ball"
+        ]
+      },
+      "axis": {
+        "type": "string",
+        "description": "Motion axis for non-rigid joints: x, y or z. Default z.",
+        "enum": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      "offset": {
+        "type": "string",
+        "description": "Unit expression, e.g. '0.25 in'. Default 0."
+      },
+      "angle_degrees": {
+        "type": "number",
+        "description": "Rotation about the joint axis. Default 0."
+      },
+      "key_point": {
+        "type": "string",
+        "description": "center, start, end or middle. Default center.",
+        "enum": [
+          "center",
+          "start",
+          "end",
+          "middle"
+        ]
+      },
+      "flipped": {
+        "type": "boolean",
+        "description": "Try this direction first. Default false."
+      },
+      "auto_flip": {
+        "type": "boolean",
+        "description": "Resolve the direction by measuring interference. Default true."
+      },
+      "name": {
+        "type": "string",
+        "description": "Optional joint name."
+      }
+    },
+    "required": [
+      "move",
+      "to"
+    ],
+    "additionalProperties": false
+  },
+  "list_files": {
+    "type": "object",
+    "properties": {
+      "directory": {
+        "type": "string",
+        "description": "Directory to list. Omit to see the readable roots."
+      },
+      "pattern": {
+        "type": "string",
+        "description": "Glob, e.g. '*.step'. Default '*'.",
+        "enum": [
+          "isogrid",
+          "hex"
+        ]
+      },
+      "recursive": {
+        "type": "boolean",
+        "description": "Search subdirectories. Default false."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum entries. Default 200.",
+        "minimum": 1
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "read_file": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to a text file inside a readable directory."
+      },
+      "max_bytes": {
+        "type": "integer",
+        "description": "Maximum returned bytes, default 12000, ceiling 20000; use symbol or line ranges.",
+        "minimum": 1,
+        "maximum": 20000
+      },
+      "start_line": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "end_line": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "symbol": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "fetch_url": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Public http or https URL."
+      },
+      "render_pdf": {
+        "type": "boolean",
+        "description": "Rasterise a PDF on arrival. Default true."
+      },
+      "pages": {
+        "type": "integer",
+        "description": "PDF pages to render. Default 4, maximum 8.",
+        "minimum": 1,
+        "maximum": 8
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "additionalProperties": false
+  },
+  "pdf_to_images": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to a .pdf inside a readable directory."
+      },
+      "pages": {
+        "type": "integer",
+        "description": "Pages to render. Default 4, maximum 8.",
+        "minimum": 1,
+        "maximum": 8
+      },
+      "dpi": {
+        "type": "integer",
+        "description": "Resolution. Default 200.",
+        "minimum": 1
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "import_geometry": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to the CAD file inside a readable directory."
+      },
+      "flatten_into_root": {
+        "type": "boolean",
+        "description": "Import bodies into the root rather than as a component. Default false."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "list_documents": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "switch_document": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of an open document, exact or a unique substring."
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index from list_documents. Use this when several documents share a name.",
+        "minimum": 0
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "bodies_to_components": {
+    "type": "object",
+    "properties": {
+      "bodies": {
+        "type": "array",
+        "description": "Body names to convert. Omit to convert every root body.",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "write_file": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path in this repository, absolute or relative to its root."
+      },
+      "content": {
+        "type": "string",
+        "description": "Full new contents of the file."
+      },
+      "run_tests": {
+        "type": "boolean",
+        "description": "Run the suite afterwards and report. Default true."
+      }
+    },
+    "required": [
+      "path",
+      "content"
+    ],
+    "additionalProperties": false
+  },
+  "run_tests": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "Test file glob. Default 'test*.py'.",
+        "enum": [
+          "isogrid",
+          "hex"
+        ]
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "edit_lattice": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "isogrid | hex. Default isogrid.",
+        "enum": [
+          "isogrid",
+          "hex"
+        ]
+      },
+      "cell_size": {
+        "type": "string",
+        "description": "default '1 in'"
+      },
+      "rib_width": {
+        "type": "string",
+        "description": "default '0.1 in'"
+      },
+      "margin": {
+        "type": "string",
+        "description": "Solid band at the edges; defaults to rib_width."
+      },
+      "skin_thickness": {
+        "type": "string",
+        "description": "Uncut floor; '0 in' cuts through. Default '0 in'."
+      },
+      "row_stagger": {
+        "type": "number",
+        "description": "isogrid only: fraction of a cell each row shifts sideways. Default 0.5, which is what makes the field tessellate (six triangles per vertex). 0 gives independent rows separated by horizontal rib bands."
+      },
+      "row_pitch": {
+        "type": "number",
+        "description": "isogrid only: multiplier on row spacing. Default 1."
+      },
+      "include_inverted": {
+        "type": "boolean",
+        "description": "isogrid only: include inverted triangles. Default true."
+      },
+      "rotation_degrees": {
+        "type": "number",
+        "description": "Rotate the field. Default 0."
+      },
+      "cutter_diameter": {
+        "type": "string",
+        "description": "Round pocket corners for this router/end-mill, e.g. '0.125 in'. Omit for sharp corners."
+      },
+      "corner_segments": {
+        "type": "integer",
+        "description": "Chord segments per rounded corner. Default 6.",
+        "minimum": 2,
+        "maximum": 64
+      },
+      "corner_mode": {
+        "type": "string",
+        "enum": [
+          "sharp",
+          "sketch_rounding",
+          "feature_fillet"
+        ],
+        "description": "Native sketch representation: feature_fillet keeps triangle lines and adds a separate fillet feature."
+      },
+      "lattice_ref": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "lattice_ref"
+    ],
+    "additionalProperties": false
+  }
+}

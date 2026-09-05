@@ -75,14 +75,8 @@ def _load_brief() -> str:
     Codex picks this file up on its own; the other backends get it as their
     system prompt. Keeping one file means a change reaches every client.
     """
-    try:
-        import catalog
-        return catalog.brief()
-    except Exception:
-        return ("You drive Autodesk Fusion through a local bridge. Dimensions "
-                "are unit expression strings such as '12 in'. Read the "
-                "verification block on every mutating call, and look at the "
-                "viewport capture before saying a part is done.")
+    from agent_runtime import PROMPT
+    return PROMPT
 
 
 SYSTEM_PROMPT = _load_brief()
@@ -108,12 +102,17 @@ TRANSCRIPTS_OFF = os.environ.get("STUDIO_TRANSCRIPT", "").lower() in ("0", "off"
 
 from bridge_client import Bridge, BridgeError, tool_schemas  # noqa: E402
 from bridge_client import property_schema as _property_schema  # noqa: E402
+import agent_runtime
+from tool_contracts import validate as validate_arguments
+from errors import ArgumentError
 
 
 def tool_specs(registry: dict[str, Any]) -> list[ToolSpec]:
     """Bridge registry -> neutral tool specs, using the shared schema generator."""
     return [ToolSpec(name=spec["name"], description=spec["description"],
-                     properties=spec["input_schema"]["properties"])
+                     properties=spec["input_schema"]["properties"],
+                     required=spec["input_schema"].get("required", []),
+                     additional_properties=spec["input_schema"].get("additionalProperties", True))
             for spec in tool_schemas(registry)]
 
 
@@ -281,12 +280,14 @@ class Agent:
     def __init__(self, bridge: Bridge, provider: Provider) -> None:
         self.bridge = bridge
         self.provider = provider
+        self.observe = lambda event, data: None
+        self.expected_stage = ""
         self.stopped: Callable[[], bool] = lambda: False
 
     def _capture(self, prefix: str) -> tuple[str, str] | None:
         try:
             response = self.bridge.call("capture_viewport", {
-                "views": ["iso"], "width": CAPTURE_WIDTH,
+                "views": ["top"], "clean": True, "width": CAPTURE_WIDTH,
                 "height": CAPTURE_HEIGHT, "prefix": prefix,
             }, confirm=False)
             if not response.get("ok"):
@@ -323,7 +324,7 @@ class Agent:
                      + "\n\nSay whether what you see matches them. If a count, "
                        "size or placement looks different from what was asked "
                        "for, lead with that.")
-        description = DESCRIBER.describe(encoded, note)
+        description = DESCRIBER.describe(encoded, note, emit=self.observe)
         if VISION_MODE == "both":
             result.image_b64 = encoded
         return description
@@ -342,7 +343,8 @@ class Agent:
             encoded,
             f"This image came back from `{result.name}` as {name}. It may be an "
             "engineering drawing rather than a CAD viewport. Report the "
-            "dimensions, hole patterns and callouts you can actually read.")
+            "dimensions, hole patterns and callouts you can actually read. "
+            + "Expected completed stage: " + self.expected_stage, emit=self.observe)
         if VISION_MODE == "both":
             result.image_b64 = encoded
         # Append rather than replace: one tool call can return several pages.
@@ -352,103 +354,135 @@ class Agent:
 
     def run(self, blocks: list[dict], emit: Callable[[str, Any], None],
             stopped: Callable[[], bool] = lambda: False) -> None:
-        self.stopped = stopped
-        registry = self.bridge.registry()
-        specs = tool_specs(registry)
-        mutating = {n for n, s in registry.items() if s.get("mutating")}
-        emit("tools", {"count": len(specs), "names": sorted(registry)})
-
-        self.provider.add_user(blocks)
-
-        for _ in range(MAX_LOOP_STEPS):
-            turn = self.provider.stream(SYSTEM_PROMPT, specs, emit)
-
-            if turn.usage:
-                emit("usage", turn.usage)
-
-            # An agent backend already ran its own loop and executed its own
-            # tools; running them again here would duplicate every operation.
-            if getattr(self.provider, "is_agent", False):
-                break
-            if turn.stop_reason == "refusal":
-                emit("error", {"message": "The model declined this request."})
-                break
-            if turn.stop_reason == "length":
-                emit("error", {"message": "Response hit the output limit."})
-            if not turn.tool_calls:
-                break
-
-            if self.stopped():
-                # The model asked for tools and we are not going to run them.
-                # Answer every call anyway: an assistant turn carrying
-                # tool_calls with no matching results is a malformed history,
-                # and the *next* message would be the one that fails.
-                self.provider.add_tool_results([
-                    ToolResult(call.id, call.name, False,
-                               {"error": "stopped by the user before this ran"})
-                    for call in turn.tool_calls])
-                emit("stopped", {"before": [c.name for c in turn.tool_calls]})
-                break
-
-            results: list[ToolResult] = []
-            for call in turn.tool_calls:
+        self.stopped, self.observe = stopped, emit
+        started = time.monotonic()
+        emit("turn_start", {})
+        self.bridge.enabled_groups = {"core"}  # Start each user task with the small toolset.
+        if not hasattr(self.bridge, "result_cache"): self.bridge.result_cache = {}
+        repeated = {}
+        consecutive_failures = 0
+        dirty = False
+        final_checked = False
+        try:
+            registry = self.bridge.registry()
+            self.provider.add_user(blocks)
+            for step in range(MAX_LOOP_STEPS):
+                selected = agent_runtime.select(registry, self.bridge.enabled_groups)
+                specs = tool_specs(selected)
+                emit("tools", {"count": len(specs), "names": sorted(selected),
+                               "capability_version": getattr(self.bridge, "capability_version", None)})
+                self.provider.max_output_tokens = int(os.environ.get(
+                    "STUDIO_SOURCE_MAX_TOKENS" if "source" in self.bridge.enabled_groups else "STUDIO_ACTION_MAX_TOKENS",
+                    "4096" if "source" in self.bridge.enabled_groups else "2048"))
+                model_start, first = time.monotonic(), None
+                pending_text = []
+                def observe(event, data):
+                    nonlocal first
+                    if first is None and event in {"text", "thinking", "tool_pending"}:
+                        first = time.monotonic() - model_start
+                    if event == "text": pending_text.append(data)
+                    else: emit(event, data)
+                prompt = SYSTEM_PROMPT + ("\n" + agent_runtime.source_brief() if "source" in self.bridge.enabled_groups else "")
+                turn = self.provider.stream(prompt, specs, observe)
+                emit("provider_timing", {"role": "worker", "seconds": time.monotonic()-model_start,
+                                         "first_token_seconds": first})
+                if turn.usage: emit("usage", turn.usage)
+                if getattr(self.provider, "is_agent", False):
+                    for data in pending_text: emit("text", data)
+                    break
+                if turn.stop_reason in {"refusal", "length"}:
+                    emit("error", {"message": "Model refused or reached its output limit; result may be incomplete."})
+                    if not turn.tool_calls: break
+                if not turn.tool_calls:
+                    if dirty and not final_checked:
+                        # One fallback review at the final boundary, never after every mutation.
+                        final_checked = True
+                        shot_start = time.monotonic()
+                        shot = self._capture("studio_final")
+                        emit("capture_timing", {"seconds": time.monotonic()-shot_start})
+                        if shot:
+                            path, encoded = shot
+                            result = ToolResult("final_review", "capture_viewport", True, {})
+                            note = self._look(result, encoded, {"expected_stage": "The user's requested sequence is now complete; inspect only visible geometry, not feature-tree contents."})
+                            if note: emit("vision", {"id": "final_review", "text": note})
+                            emit("capture", {"path": path, "url": "/api/image?path="+path})
+                            feedback = [{"type": "text", "text": "Final visual review is already completed (uncertain observation): " + (note or "Inspect the attached capture; do not infer unseen feature details.") + " Give the final outcome in at most 80 words. Do not capture again unless an unresolved issue requires a different view. Do not claim unmeasured facts."}]
+                            if result.image_b64:
+                                feedback.append({"type": "image", "data": result.image_b64, "media_type": "image/png"})
+                            self.provider.add_user(feedback)
+                            continue
+                        emit("error", {"message": "Final viewport capture was unavailable; visual verification is incomplete."})
+                    for data in pending_text: emit("text", data)
+                    break
+                for data in pending_text: emit("text", data)
+                results = []
+                for call in turn.tool_calls:
+                    spec = selected.get(call.name)
+                    mutating = bool(spec and spec.get("mutating"))
+                    emit("tool_start", {"id": call.id, "name": call.name,
+                                        "arguments": call.arguments, "mutating": mutating})
+                    signature = json.dumps([call.name, call.arguments], sort_keys=True)
+                    try:
+                        if self.stopped(): raise ArgumentError("Stopped before execution")
+                        if not spec: raise ArgumentError("Tool is not loaded; use load_tools to expose its group")
+                        validate_arguments(call.arguments, next(s for s in specs if s.name == call.name).json_schema())
+                        if repeated.get(signature, 0) >= 2:
+                            raise ArgumentError("This exact call already failed twice. Change the arguments or inspect the reported state; another identical request was not executed.")
+                        if call.name == "load_tools":
+                            self.bridge.enabled_groups.add(call.arguments["group"])
+                            registry = self.bridge.registry()
+                            payload = {"loaded": call.arguments["group"], "available": sorted(agent_runtime.select(registry, self.bridge.enabled_groups)),
+                                       "capability_version": getattr(self.bridge, "capability_version", None)}
+                            outcome = {"ok": True, "result": payload}
+                        elif call.name == "get_result":
+                            payload = self.bridge.result_cache[call.arguments["result_ref"]]
+                            for key in call.arguments.get("field", "").split("."):
+                                if key: payload = payload[int(key)] if isinstance(payload, list) else payload[key]
+                            outcome = {"ok": True, "result": payload}
+                        else:
+                            outcome = self.bridge.call(call.name, call.arguments, confirm=mutating)
+                    except ArgumentError as exc:
+                        outcome = {"ok": False, "error": {"code": exc.code, "message": str(exc), "context": exc.context, "execution_started": False}}
+                    except (KeyError, IndexError, ValueError):
+                        outcome = {"ok": False, "error": {"code": "invalid_arguments", "message": "Unknown result reference or field"}}
+                    except BridgeError as exc:
+                        outcome = {"ok": False, "error": {"code": "bridge_unreachable", "message": str(exc)}}
+                    ok = bool(outcome.get("ok"))
+                    consecutive_failures = 0 if ok and mutating else consecutive_failures + (not ok)
+                    payload = outcome.get("result") if ok else outcome.get("error")
+                    repeated[signature] = 0 if ok else repeated.get(signature, 0) + 1
+                    reference = "result_" + call.id
+                    if isinstance(payload, dict): payload = {**payload, "result_ref": reference}
+                    self.bridge.result_cache[reference] = payload
+                    emit("tool_end", {"id": call.id, "name": call.name, "ok": ok, "result": payload})
+                    result = ToolResult(call.id, call.name, ok, payload)
+                    if ok and mutating and call.name not in {"cancel_operation", "switch_document", "write_file", "patch_file"}:
+                        dirty = True
+                        final_checked = False
+                    if ok and call.name == "capture_viewport":
+                        self.expected_stage = call.arguments.get("expected_stage", "Inspect visible geometry only; current stage is unspecified")
+                        final_checked = True
+                        dirty = False
+                    if ok and not mutating:
+                        for path in _result_images(payload)[:MAX_TOOL_IMAGES]:
+                            looked = self._look_at_file(result, path)
+                            if looked: emit("vision", {"id": call.id, "text": looked})
+                            emit("capture", {"path": path, "url": "/api/image?path=" + path})
+                    if ok and call.name in {"write_file", "patch_file"}:
+                        registry = self.bridge.registry()
+                    results.append(result)
+                self.provider.add_tool_results(results)
+                if consecutive_failures >= 5:
+                    emit("error", {"message": "Stopped after five failed calls without a successful edit. The task is incomplete; inspect the last error and returned design before retrying."})
+                    break
                 if self.stopped():
-                    results.append(ToolResult(
-                        call.id, call.name, False,
-                        {"error": "stopped by the user before this ran"}))
-                    continue
-                if "__parse_error__" in call.arguments:
-                    emit("tool_end", {"id": call.id, "name": call.name, "ok": False,
-                                      "result": {"error": "malformed tool arguments"}})
-                    results.append(ToolResult(
-                        call.id, call.name, False,
-                        {"error": "Arguments were not valid JSON. Retry with "
-                                  "well-formed arguments."}))
-                    continue
-
-                is_mutating = call.name in mutating
-                emit("tool_start", {"id": call.id, "name": call.name,
-                                    "arguments": call.arguments,
-                                    "mutating": is_mutating})
-                try:
-                    outcome = self.bridge.call(call.name, call.arguments,
-                                               confirm=is_mutating)
-                except BridgeError as exc:
-                    outcome = {"ok": False, "error": {"code": "bridge_unreachable",
-                                                      "message": str(exc)}}
-
-                ok = bool(outcome.get("ok"))
-                payload = outcome.get("result") if ok else outcome.get("error")
-                emit("tool_end", {"id": call.id, "name": call.name,
-                                  "ok": ok, "result": payload})
-
-                result = ToolResult(call.id, call.name, ok, payload)
-                if ok and is_mutating and call.name not in {"undo_last", "cancel_operation"}:
-                    shot = self._capture(f"studio_{call.name}")
-                    if shot:
-                        path, encoded = shot
-                        description = self._look(result, encoded,
-                                                 call.arguments)
-                        if description:
-                            result.description = description
-                            emit("vision", {"id": call.id, "text": description})
-                        emit("capture", {"path": path,
-                                         "url": "/api/image?path=" + path})
-                elif ok:
-                    # A fetched drawing or a rendered PDF page comes back as a
-                    # path. Left at that, the model is handed a filename and
-                    # told nothing -- which defeats the point of fetching it.
-                    for path in _result_images(payload)[:MAX_TOOL_IMAGES]:
-                        looked = self._look_at_file(result, path)
-                        if looked:
-                            emit("vision", {"id": call.id, "text": looked})
-                        emit("capture", {"path": path,
-                                         "url": "/api/image?path=" + path})
-                results.append(result)
-
-            self.provider.add_tool_results(results)
-
-        emit("done", {})
+                    emit("stopped", {})
+                    break
+            else:
+                emit("error", {"message": "Agent step limit reached; inspect the last operation before continuing."})
+        finally:
+            emit("turn_end", {"active_seconds": time.monotonic()-started})
+            emit("done", {})
 
 
 def _result_images(payload: Any) -> list[str]:

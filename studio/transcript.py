@@ -119,7 +119,9 @@ class Recorder:
         if isinstance(result, dict):
             trimmed = {k: v for k, v in result.items() if k != "verification"}
             checks = []
-            for report in (result.get("verification") or []):
+            reports = result.get("verification") or []
+            if isinstance(reports, dict): reports = [reports]
+            for report in reports:
                 for check in (report.get("checks") or []):
                     checks.append({"name": check.get("name"),
                                    "ok": check.get("ok"),

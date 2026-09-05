@@ -8,6 +8,13 @@ reproduced in a live Fusion session during this planning pass.
 
 ## Implementation progress
 
+- The Studio efficiency iteration now has explicit schemas, native feature
+  references and inspection, managed latest-lattice revision, synchronous scoped
+  undo, focused source patches, tool groups, and separate worker/vision telemetry.
+  See `docs/agent-interface-validation.md` for live replay evidence and limits.
+  This resolves the observed plate-revision interface gaps; it does not satisfy
+  the full saved-assembly revision milestone or implement a general recipe runner.
+
 - Source baseline committed as `021096f`; original suites passed 176 core and
   90 studio tests. The staged source was checked for credential-shaped content.
 - Implemented bounded lattice/curve/fillet preflight, explicit recovery reports,
