@@ -15,6 +15,18 @@ from tool_contracts import validate
 
 
 class Contracts(unittest.TestCase):
+    def test_general_initial_surface_and_complete_group_discovery(self):
+        from studio import agent_runtime
+        from bridge_client import CONTROL_TOOLS
+        registry={**tools.TOOLS,**CONTROL_TOOLS}
+        initial=agent_runtime.select(registry,{'core'})
+        self.assertEqual(len(initial),10)
+        self.assertIn('design_summary',initial)
+        self.assertFalse(set(initial)&{'create_test_box','lattice_pockets','edit_lattice','create_tube_frame'})
+        assigned=set().union(*agent_runtime.GROUPS.values())
+        self.assertEqual(assigned,set(registry))
+        self.assertEqual(set(agent_runtime.GROUPS),set(agent_runtime.GROUP_DESCRIPTIONS))
+
     def test_same_named_documents_have_only_one_active_entry(self):
         from types import SimpleNamespace
         class Document:

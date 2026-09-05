@@ -104,7 +104,11 @@ the GLM measurements do not establish their live reliability or performance.
 **Tool schemas are explicit.** The bridge's `/v1/tools` registry publishes
 `tool_schemas.json` contracts, including required fields and array item types.
 Both client and native dispatch validate them before execution. Studio begins
-with 12 tools and uses `load_tools` for additional groups and capability refresh.
+with 10 general inspection, document, operation-control and discovery tools.
+`load_tools` adds geometry, editing, patterns, assembly, generators, engineering,
+validation, files, source, documents or diagnostics as needed. Specialist
+instructions appear only with their group. See the
+[initial-tool review](../docs/initial-tool-surface.md) for the selection rationale.
 
 **The model checks the finished sequence.** It requests a clean capture with an
 expected stage after related mutations; the harness supplies one fallback review

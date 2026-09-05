@@ -1,53 +1,88 @@
 """Small task-specific toolsets and bounded, retrievable model context."""
 import json
-from pathlib import Path
 
+# The initial surface should help with any document, not choose its geometry.
 GROUPS = {
-    "all": set(),
-    "core": {"create_test_box", "lattice_pockets", "edit_lattice", "feature_tree", "inspect_entity",
-             "capture_viewport", "list_documents", "switch_document", "operation_status", "cancel_operation"},
-    "geometry": {"extrude_polygons", "cut_polygons", "router_fillet_pocket_corners", "delete_entities", "delete_named_features", "undo_last", "design_summary", "verify_spec", "set_6061_material", "save_document"},
-    "assembly": {"create_tube_frame", "add_bellypan", "add_fasteners", "import_geometry", "bodies_to_components", "list_joint_candidates", "create_joint", "check_interference"},
-    "engineering": {"mechanics_report", "inspect_threads", "verify_spec"},
-    "files": {"list_files", "read_file", "fetch_url", "pdf_to_images", "import_geometry"},
+    "core": {"design_summary", "feature_tree", "inspect_entity", "capture_viewport",
+             "list_documents", "switch_document", "operation_status", "cancel_operation"},
+    "geometry": {"create_test_box", "extrude_polygons", "cut_polygons"},
+    "editing": {"delete_entities", "delete_named_features", "undo_last"},
+    "patterns": {"lattice_pockets", "edit_lattice", "router_fillet_pocket_corners"},
+    "assembly": {"import_geometry", "bodies_to_components", "list_joint_candidates", "create_joint", "check_interference"},
+    "generators": {"create_tube_frame", "add_bellypan", "add_fasteners", "replace_with_isogrid_bar"},
+    "engineering": {"mechanics_report", "inspect_threads", "set_6061_material"},
+    "validation": {"verify_spec", "check_interference"},
+    "files": {"list_files", "read_file", "fetch_url", "pdf_to_images", "import_geometry", "import_step_component"},
     "source": {"read_file", "search_files", "patch_file", "write_file", "run_tests"},
+    "documents": {"active_document", "save_document"},
+    "diagnostics": {"health", "inspect_commands"},
+    "all": set(),
+}
+
+GROUP_DESCRIPTIONS = {
+    "core": "design and feature inspection, viewport, document selection, operation status",
+    "geometry": "new rectangular body/document, planar polygon extrusion and cuts",
+    "editing": "explicit trailing-feature deletion and scoped undo; not arbitrary parameter editing",
+    "patterns": "isogrid/hex lattices, managed lattice revisions and router pocket fillets",
+    "assembly": "import, bodies to components, joint candidates, mating and interference",
+    "generators": "specialized tube frames, bellypans, fasteners and replacement isogrid bars",
+    "engineering": "section and beam calculations, thread inspection, 6061 material assignment",
+    "validation": "verify dimensions, envelope, counts and interference",
+    "files": "find/read local files, vendor downloads, PDF images and CAD imports",
+    "source": "search/read/patch repository code and run tests for missing capabilities",
+    "documents": "document metadata and saving to an existing target",
+    "diagnostics": "bridge health and Fusion command inspection",
+    "all": "full registry, including newly registered tools not yet assigned a group",
+}
+
+GROUP_GUIDANCE = {
+    "geometry": "Geometry: create_test_box creates a new document with width=X, height=Y, depth=Z thickness. Polygon extrusion and cuts use XY coordinates; they are not general 3D sketch operations.",
+    "editing": "Editing: deletion requires an explicit complete trailing timeline chain. undo_last covers only supported additive agent changes, not arbitrary UI undo or parameter edits.",
+    "patterns": "Patterns: use returned lattice_ref with edit_lattice to revise its managed latest chain. corner_mode=feature_fillet creates straight sketch triangles plus a separate fillet; sketch_rounding uses chord segments. Zero arcs alone does not prove sharp triangles: inspect non-reference lines and the returned sketch representation.",
 }
 
 PROMPT = """You operate live Autodesk Fusion. Execute the user's CAD work using tools.
-Use unit strings such as '8 in' for dimensions. create_test_box creates a new
-document: width=X, height=Y, depth=Z thickness. For an 8x6x0.25 plate use width=8in,
-height=6in, depth=0.25in. lattice_pockets returns lattice_ref and native
-entities. edit_lattice revises that chain, including corner_mode=feature_fillet
-for straight sketch triangles plus a separate fillet. Use returned references;
-never invent feature names or IDs. To inspect an existing design use feature_tree
-or inspect_entity. Native curve counts and feature health establish editability.
+The initial tools cover orientation, inspection, observation, and capability loading.
+For existing geometry, use design_summary for bodies/components and dimensions,
+feature_tree for native features, or inspect_entity for a returned feature reference.
+Use the returned state instead of repeating inspection after every operation.
+Choose the intended open document with list_documents and switch_document when
+needed; same-named documents require the returned index. Use returned references;
+never invent feature names or IDs. Native inspection establishes feature contents.
+Load the relevant tool group with load_tools before modeling, editing, assembly,
+validation or file work. Its group directory describes actual available capabilities.
+Do not substitute a specialized generator for a different requested operation.
+If no supported tool fits, inspect available capabilities before loading source.
+Do not claim generic feature editing or modeling operations that are not exposed.
+Use unit expression strings for dimensions and respect each tool's axes and types.
 The client binds edits to the observed document. A timeout is unknown: poll the
 same operation ID before retrying. Recovery can be partial; inspect what remains.
-Do not infer full restoration from matching counts. Undo is limited to supported
-agent-created features, not arbitrary UI actions. Do not repeat unchanged errors.
-Read argument types literally; arrays are JSON arrays, not strings containing JSON.
-Most actions need no narration. Keep final answers under 80 words stating
-the result and unresolved issues. Do not narrate debugging hypotheses. Never
-claim a check ran, a file changed, or a sketch was removed without returned evidence.
-Tools are grouped: load_tools exposes geometry/editing, assembly, engineering,
-files/vendor data, or source editing when needed. Load source only when the
-supported modeling tools cannot do the task. Project-specific code belongs in
-recipes/. Use focused reads and patches, not whole-file rewrites for small fixes.
+Do not infer full restoration from matching counts or repeat unchanged errors.
+Most actions need no narration. Keep final answers under 80 words stating the
+result and unresolved issues. Never claim a check ran or a file changed without
+evidence. Use focused source reads and patches, not whole-file rewrites for small
+fixes. Source writes report activation requirements; recipes require explicit integration.
 After the requested modeling sequence, call capture_viewport once with a suitable
-view (top for planar layout, iso for depth), clean=true, and expected_stage stating
-what should be present. Avoid captures of unfinished intermediate stages unless
-diagnosing an issue. Vision observations are uncertain; use native measurements
-for counts, radii, centering and dependencies. Never explain away disagreement
-with invented geometry. A source write reports whether a client restart is needed.
+view, clean=true, and expected_stage stating what should be present. Avoid captures
+of unfinished stages unless diagnosing. Vision is uncertain: use native measurements
+for counts, radii, placement and dependencies. Do not invent explanations for disagreement.
 Large tool results have a result_ref; get_result retrieves selected fields.
 """
 
 LOCAL = {
-    "load_tools": {"description": "Load an additional tool group, or refresh capabilities after a geometry/source change.", "mutating": False,
+    "load_tools": {"description": "Load a capability group or refresh its tools. Multiple group loads can be requested in one turn. Groups: " + "; ".join(f"{name}: {description}" for name, description in GROUP_DESCRIPTIONS.items()), "mutating": False,
         "input_schema": {"type": "object", "properties": {"group": {"type": "string", "enum": list(GROUPS)}}, "required": ["group"], "additionalProperties": False}},
     "get_result": {"description": "Retrieve a field from a prior tool result without repeating the native operation.", "mutating": False,
         "input_schema": {"type": "object", "properties": {"result_ref": {"type": "string"}, "field": {"type": "string", "description": "Optional dot-separated field, e.g. created_entities.0"}}, "required": ["result_ref"], "additionalProperties": False}},
 }
+
+
+def guidance(groups):
+    """Teach specialized conventions only after those capabilities are loaded."""
+    selected = GROUPS if "all" in groups else groups
+    parts = [GROUP_GUIDANCE[name] for name in GROUP_GUIDANCE if name in selected]
+    if "source" in selected: parts.append(source_brief())
+    return "\n".join(parts)
 
 
 def select(registry, groups):

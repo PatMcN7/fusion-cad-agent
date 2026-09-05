@@ -29,19 +29,45 @@ class Loop(unittest.TestCase):
             agent.run([{'type':'text','text':'Build then inspect'}],lambda k,d:events.append((k,d)))
         return provider,bridge,events,automatic,look
 
+    def test_different_workflows_load_without_unrelated_specialists(self):
+        cases = [('geometry','extrude_polygons'), ('assembly','list_joint_candidates'),
+                 ('files','import_geometry'), ('engineering','mechanics_report'),
+                 ('validation','verify_spec'), ('patterns','edit_lattice')]
+        registry={name:spec() for group,name in cases}
+        for group,name in cases:
+            with self.subTest(group=group):
+                turns=[Turn(tool_calls=[ToolCall('load','load_tools',{'group':group})]),
+                       Turn(tool_calls=[ToolCall('act',name,{})]),Turn()]
+                provider,bridge,*_=self.run_agent(turns,registry,[{'ok':True,'result':{}}])
+                initial={s.name for s in provider.stream.call_args_list[0].args[1]}
+                self.assertEqual(initial,{'load_tools','get_result'}) # fixture contains only specialist tools
+                loaded={s.name for s in provider.stream.call_args_list[1].args[1]}
+                self.assertIn(name,loaded)
+                if group!='patterns': self.assertNotIn('edit_lattice',loaded)
+                bridge.call.assert_called_once_with(name,{},confirm=False)
+
+    def test_specialist_instructions_are_absent_until_loaded(self):
+        initial=agent_runtime.PROMPT+agent_runtime.guidance({'core'})
+        for term in ('lattice_pockets','edit_lattice','8x6','corner_mode'):
+            self.assertNotIn(term,initial)
+        self.assertIn('corner_mode',agent_runtime.guidance({'core','patterns'}))
+        self.assertIn('XY coordinates',agent_runtime.guidance({'core','geometry'}))
+        self.assertNotIn('corner_mode',agent_runtime.guidance({'core','assembly'}))
+        self.assertIn('Source editing:',agent_runtime.guidance({'all'}))
+
     def test_two_mutations_get_one_explicit_final_capture(self):
-        turns=[Turn(tool_calls=[ToolCall('a','create_test_box',{})]),Turn(tool_calls=[ToolCall('b','lattice_pockets',{})]),Turn(tool_calls=[ToolCall('c','capture_viewport',{})]),Turn(text='Done')]
-        registry={n:spec(mutating=n!='capture_viewport') for n in ('create_test_box','lattice_pockets','capture_viewport')}
+        turns=[Turn(tool_calls=[ToolCall('load','load_tools',{'group':'geometry'})]),Turn(tool_calls=[ToolCall('a','extrude_polygons',{})]),Turn(tool_calls=[ToolCall('b','cut_polygons',{})]),Turn(tool_calls=[ToolCall('c','capture_viewport',{})]),Turn(text='Done')]
+        registry={n:spec(mutating=n!='capture_viewport') for n in ('extrude_polygons','cut_polygons','capture_viewport')}
         results=[{'ok':True,'result':{}},{'ok':True,'result':{}},{'ok':True,'result':{'captures':[{'path':'/tmp/plate.png'}]}}]
         provider,bridge,events,automatic,look=self.run_agent(turns,registry,results)
         automatic.assert_not_called()
         self.assertEqual(look.call_count,1)
         self.assertEqual(bridge.call.call_count,3)
-        self.assertEqual(sum(k=='provider_timing' for k,d in events),4)
+        self.assertEqual(sum(k=='provider_timing' for k,d in events),5)
         self.assertEqual(sum(k=='turn_end' for k,d in events),1)
 
     def test_loading_tool_group_exposes_required_array_schema(self):
-        turns=[Turn(tool_calls=[ToolCall('a','load_tools',{'group':'geometry'})]),Turn(tool_calls=[ToolCall('b','delete_entities',{'refs':['entity_1']})]),Turn(tool_calls=[ToolCall('c','capture_viewport',{})]),Turn()]
+        turns=[Turn(tool_calls=[ToolCall('a','load_tools',{'group':'editing'})]),Turn(tool_calls=[ToolCall('b','delete_entities',{'refs':['entity_1']})]),Turn(tool_calls=[ToolCall('c','capture_viewport',{})]),Turn()]
         registry={'delete_entities':spec({'refs':{'type':'array','items':{'type':'string'}}},True),'capture_viewport':spec()}
         registry['delete_entities']['input_schema']['required']=['refs']
         provider,bridge,*_=self.run_agent(turns,registry,[{'ok':True,'result':{}},{'ok':True,'result':{}}])
@@ -52,26 +78,26 @@ class Loop(unittest.TestCase):
         self.assertEqual(loaded.properties['refs']['type'],'array')
 
     def test_duplicate_failures_do_not_repeat_backend_forever(self):
-        turns=[Turn(tool_calls=[ToolCall(str(i),'lattice_pockets',{})]) for i in range(4)]+[Turn()]
-        provider,bridge,events,*_=self.run_agent(turns,{'lattice_pockets':spec(mutating=True)},[{'ok':False,'error':{'code':'invalid_arguments','message':'bad'}}]*2)
+        turns=[Turn(tool_calls=[ToolCall(str(i),'inspect_entity',{})]) for i in range(4)]+[Turn()]
+        provider,bridge,events,*_=self.run_agent(turns,{'inspect_entity':spec()},[{'ok':False,'error':{'code':'invalid_arguments','message':'bad'}}]*2)
         self.assertEqual(bridge.call.call_count,2)
         self.assertIn('already failed twice',str(events))
 
     def test_varying_failed_arguments_cannot_run_indefinitely(self):
-        turns=[Turn(tool_calls=[ToolCall(str(i),'lattice_pockets',{'margin':str(i)})]) for i in range(8)]
-        provider,bridge,events,*_=self.run_agent(turns,{'lattice_pockets':spec({'margin':{'type':'string'}},True)},[{'ok':False,'error':{'message':'wrong face'}}]*8)
+        turns=[Turn(tool_calls=[ToolCall(str(i),'inspect_entity',{'ref':str(i)})]) for i in range(8)]
+        provider,bridge,events,*_=self.run_agent(turns,{'inspect_entity':spec({'ref':{'type':'string'}})},[{'ok':False,'error':{'message':'wrong face'}}]*8)
         self.assertEqual(bridge.call.call_count,5)
         self.assertIn('task is incomplete',str(events))
 
     def test_advertised_operation_binding_passes_loop_validation(self):
-        turns=[Turn(tool_calls=[ToolCall('a','create_test_box',{'operation_id':'retry-id','document_id':'observed'})]),Turn()]
-        provider,bridge,*_=self.run_agent(turns,{'create_test_box':spec(mutating=True)},[{'ok':True,'result':{}}])
+        turns=[Turn(tool_calls=[ToolCall('a','switch_document',{'operation_id':'retry-id','document_id':'observed'})]),Turn()]
+        provider,bridge,*_=self.run_agent(turns,{'switch_document':spec(mutating=True)},[{'ok':True,'result':{}}])
         self.assertEqual(bridge.call.call_count,1)
         self.assertEqual(bridge.call.call_args.args[1]['document_id'],'observed')
 
     def test_completion_waits_for_fallback_review_and_forwards_image(self):
         events=[]
-        turns=iter([Turn(tool_calls=[ToolCall('a','create_test_box',{})]),
+        turns=iter([Turn(tool_calls=[ToolCall('load','load_tools',{'group':'geometry'})]),Turn(tool_calls=[ToolCall('a','create_test_box',{})]),
                     Turn(text='Premature success'), Turn(text='Reviewed result')])
         def stream(prompt,specs,emit):
             turn=next(turns)

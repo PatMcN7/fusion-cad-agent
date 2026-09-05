@@ -1,5 +1,10 @@
 # Agent interface validation — 2026-09-05
 
+Historical measurements below used the first interface iteration. A subsequent
+[initial-tool review](initial-tool-surface.md) removed its plate/lattice bias and
+changed the default from 12 tools to 10. The replay timings below have not been
+remeasured for that new default.
+
 This iteration addresses the failures in
 [the reviewed GLM chat](studio-session-review-2026-09-05.md). It changes the
 interface and runtime around the model, using the same configured GLM-5.3 Flash

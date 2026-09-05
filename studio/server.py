@@ -382,7 +382,7 @@ class Agent:
                         first = time.monotonic() - model_start
                     if event == "text": pending_text.append(data)
                     else: emit(event, data)
-                prompt = SYSTEM_PROMPT + ("\n" + agent_runtime.source_brief() if "source" in self.bridge.enabled_groups else "")
+                prompt = SYSTEM_PROMPT + "\n" + agent_runtime.guidance(self.bridge.enabled_groups)
                 turn = self.provider.stream(prompt, specs, observe)
                 emit("provider_timing", {"role": "worker", "seconds": time.monotonic()-model_start,
                                          "first_token_seconds": first})
