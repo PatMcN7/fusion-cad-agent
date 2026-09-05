@@ -1,8 +1,9 @@
 # Runtime implementation: protocol v4
 
-Status: implemented and covered by offline tests; native Fusion validation is
-pending. The bridge was stopped during implementation. Restart the add-in to
-load the changed shell and execution module. Geometry modules still hot-reload.
+Status: implemented, covered by offline tests, and smoke-tested in live Fusion
+on 2026-09-05. See [live results](live-runtime-validation.md) for the tested cases
+and remaining gates. The running add-in has loaded protocol v4. Future shell or
+execution-module changes require an add-in restart; geometry modules hot-reload.
 
 ## Mutation identity and document binding
 
@@ -20,7 +21,8 @@ switching updates its binding as well. Merely refreshing tool schemas does not.
 
 Document names and tab indices are not IDs. An unsaved document gets an opaque
 ID just like a saved document. IDs change when the add-in restarts or the document
-is closed and reopened. Native wrapper identity must still be tested in Fusion.
+is closed and reopened. Stable binding across calls and stale binding rejection
+were observed in one live session; close/reopen and restart cases remain pending.
 There is no persistent project identity or comprehensive manual-edit revision
 tracking yet. Two edits to the same open document can therefore share its ID.
 
@@ -134,10 +136,13 @@ already exist. Solid bellypans skip unused lattice generation.
 
 ## Validation still required
 
-- Native event delivery, document proxy identity, and a tab change during a queue.
+- A tab change while work is queued, same-name document switching, and document
+  identity across close/reopen. Basic native dispatch and stale binding rejection
+  passed the initial smoke test.
 - Lost responses and queued cancellation against the actual add-in.
 - Small lattice/rounded-corner/fillet timings to calibrate limits.
-- Cleanup failures and recovery measurements on disposable native fixtures.
+- Feature, compound, and destructive-operation recovery measurements. A failed
+  sketch's cleanup was verified; this is not a full restoration proof.
 - Save/reopen identity, manual edits, and undo/redo for future revision tracking.
 
 The fake event queue tests exercise the real shell dispatch methods, journal,

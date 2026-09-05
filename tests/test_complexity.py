@@ -82,6 +82,36 @@ class ComplexityTests(unittest.TestCase):
 
 
 class ToolPreflightTests(unittest.TestCase):
+    def test_rounded_lattice_checks_original_junctions_and_final_clearances(self):
+        import tools
+        from types import SimpleNamespace
+        box = SimpleNamespace(minPoint=SimpleNamespace(x=0, y=0, z=0),
+                              maxPoint=SimpleNamespace(x=8 * 2.54, y=6 * 2.54, z=0.635))
+        body = SimpleNamespace(preciseBoundingBox=box, volume=100)
+        design = SimpleNamespace(rootComponent=object(), unitsManager=object())
+        def cm(units, value, name, **kwargs):
+            return float(value.split()[0]) * 2.54
+        for stagger, expected_ok in ((0.5, True), (0.0, False)):
+            checks = []
+            original_check = tools.assertions.tiling_valence
+            def record(*args, **kwargs):
+                result = original_check(*args, **kwargs)
+                checks.append(result)
+                return result
+            with self.subTest(stagger=stagger), patch.object(
+                    tools, "_active_design", return_value=design), patch.object(
+                    tools, "_resolve_target", return_value=body), patch.object(
+                    tools, "_cm", side_effect=cm), patch.object(
+                    tools.assertions, "tiling_valence", side_effect=record), patch.object(
+                    tools.assertions, "minimum_gap", wraps=tools.assertions.minimum_gap) as gap, patch.object(
+                    tools.pick, "faces", side_effect=RuntimeError("native boundary")):
+                with self.assertRaisesRegex(RuntimeError, "native boundary"):
+                    tools.lattice_pockets({"cell_size": "2 in", "rib_width": "0.25 in",
+                                           "cutter_diameter": "0.125 in", "corner_segments": 3,
+                                           "row_stagger": stagger})
+                self.assertEqual(checks[0].ok, expected_ok)
+                self.assertEqual(len(gap.call_args.args[1][0]), 12)
+
     def test_lattice_guard_runs_before_rounding_or_kernel_work(self):
         import tools
         from types import SimpleNamespace

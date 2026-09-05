@@ -24,7 +24,9 @@ class Timeline:
             if not stuck:
                 self.items.pop()
             return True
-        self.items.append(SimpleNamespace(name=name, deleteMe=delete))
+        # Match Fusion: TimelineObject has entity, but no deleteMe method.
+        self.items.append(SimpleNamespace(
+            name=name, entity=SimpleNamespace(name=name, deleteMe=delete)))
 
 
 class RecoveryTests(unittest.TestCase):
@@ -48,6 +50,16 @@ class RecoveryTests(unittest.TestCase):
             self.timeline.add("edit")
             cp.rollback()
             self.assertEqual(cp.recovery["status"], "restored" if verified else "partial")
+
+    def test_unsupported_timeline_entity_stops_cleanup(self):
+        for entity in (None, object()):
+            with self.subTest(entity=entity):
+                cp = Checkpoint(self.design, "edit")
+                self.timeline.items.append(SimpleNamespace(name="unsupported", entity=entity))
+                self.assertEqual(cp.rollback(), [])
+                self.assertEqual(cp.recovery["status"], "failed")
+                self.assertIn("No supported entity deletion", cp.recovery["reason"])
+                self.assertEqual(self.timeline.count, cp.timeline_count + 1)
 
     def test_deletion_is_not_recovered_by_matching_counts(self):
         cp = Checkpoint(self.design, "destructive")

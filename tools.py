@@ -2007,6 +2007,9 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
     # Rounding here rather than in a post-pass means the cut is right the
     # first time -- and the rib width is measured on the geometry that will
     # actually exist, not on a sharp-cornered idealisation of it.
+    # Junction valence concerns the original cell corners. Arc approximation
+    # vertices cannot represent how many neighbouring cells meet at a junction.
+    topology_field = field
     cutter_expr = arguments.get("cutter_diameter")
     cutter = _cm(units_manager, cutter_expr, "cutter_diameter") if cutter_expr else 0.0
     corner_radius = cutter / 2.0
@@ -2039,7 +2042,7 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
     # Overlap and spacing checks cannot see a field whose rows fail to
     # interlock; this is the one that can.
     preflight.add(assertions.tiling_valence(
-        "cells_tessellate", field, expected=6 if kind == "isogrid" else 3,
+        "cells_tessellate", topology_field, expected=6 if kind == "isogrid" else 3,
         severity_ok_when_deliberate=True))
     preflight.add(assertions.rib_aspect_ratio("rib_aspect", rib, depth, 8.0))
     preflight.add(assertions.corners_machinable(

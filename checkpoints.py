@@ -50,7 +50,14 @@ class Checkpoint:
                     name = item.name
                 except Exception:
                     name = f"entry {previous - 1}"
-                if not item.deleteMe():
+                # TimelineObject is a wrapper; deletion belongs to its native
+                # sketch/feature. Groups and unsupported entities need a
+                # different recovery strategy, so stop rather than guessing.
+                entity = item.entity
+                delete = getattr(entity, "deleteMe", None)
+                if not callable(delete):
+                    raise RuntimeError(f"No supported entity deletion for {name}")
+                if not delete():
                     raise RuntimeError(f"Could not delete {name}")
                 removed.append(name)
                 if timeline.count >= previous:

@@ -20,9 +20,14 @@ reproduced in a live Fusion session during this planning pass.
 - CLI, studio, and MCP use the shared transport and schema generator.
 - Added offline failure-injection tests for timeout/retry, restart, persistence
   failure, document switching, partial cleanup, and complexity limits.
-- Native fixture creation, live recovery proofs, complexity calibration, and all
-  Phase 2 acceptance work remain pending. A live check found no bridge connection
-  metadata. No production CAD document has been changed by this implementation.
+- Live smoke tests on 2026-09-05 passed native dispatch, same-ID replay, stale
+  document rejection, dense-lattice rejection, sketch cleanup after failure, and
+  a small rounded lattice. They exposed and verified fixes for timeline-entity
+  deletion and a rounded-corner topology-check false warning.
+- See `docs/live-runtime-validation.md` for evidence and limits. The disposable
+  plate is not the registered mounting-plate benchmark. Lost responses, queued
+  cancellation, restart recovery, complexity calibration, and Phase 2 acceptance
+  remain pending. The original production assembly remains unmodified.
 
 See `docs/runtime.md` for the implemented contract and limitations,
 `docs/mutation-audit.md` for the recovery audit, and `benchmarks/cases.json` for
