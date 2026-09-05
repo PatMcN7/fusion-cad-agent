@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "units": "in",
+  "fixture_status": "not_built",
+  "artifact_directory": "benchmarks/artifacts",
+  "run_directory": "benchmarks/runs",
+  "required_run_metadata": ["case_id", "fixture_version", "source_commit", "recipe_version", "worker_provider", "worker_model", "effort", "vision_model", "outcome", "human_corrections", "wall_seconds", "model_cost_usd", "kernel_seconds", "inspection_seconds", "recovery_status", "native_artifact", "captures", "check_results"],
+  "cases": [
+    {
+      "id": "plate_create_v1",
+      "starting_fixture": "empty_disposable_document",
+      "request": "Create an 8 by 6 by 0.25 inch mounting plate with four 0.25 inch through holes, each centered 1 inch from its adjacent outside edges.",
+      "expected": {"dimensions": [8, 6, 0.25], "hole_count": 4, "hole_diameter": 0.25, "hole_spacing": [6, 4], "linear_tolerance": 0.001},
+      "acceptance": ["dimensions", "hole_diameter", "hole_spacing", "native_editable_features", "visual_review"]
+    },
+    {
+      "id": "plate_resize_v1",
+      "starting_fixture": "accepted_plate_create_v1",
+      "request": "Increase plate width from 8 to 10 inches, retaining the one-inch hole edge offsets, height, and thickness.",
+      "expected": {"dimensions": [10, 6, 0.25], "hole_spacing": [8, 4], "linear_tolerance": 0.001},
+      "acceptance": ["parameter_edit", "dependent_holes_follow", "unrelated_features_preserved", "visual_review"]
+    },
+    {
+      "id": "frame_resize_v1",
+      "starting_fixture": "saved_frame_with_bellypan_and_corner_modules_v1",
+      "request": "Make the frame two inches narrower, keep the modules in the corners, preserve mounting clearances, and update the bellypan.",
+      "acceptance": ["width_decreased_by_2_in", "mounting_interfaces_preserved", "bellypan_updated", "clearances_preserved", "native_editability", "visual_review"]
+    },
+    {
+      "id": "motor_mate_v1",
+      "starting_fixture": "motor_and_mounting_interface_v1",
+      "request": "Mate the motor to its specified mounting interface with the shaft facing into the assembly.",
+      "acceptance": ["axis_alignment", "facing_direction", "insertion_depth", "permitted_motion", "declared_contacts_only", "visual_review"],
+      "negative_case": "A reversed mate with zero interference must fail the facing check."
+    },
+    {
+      "id": "failed_edit_v1",
+      "starting_fixture": "accepted_plate_create_v1",
+      "request": "Inject a failure after the requested edit changes geometry.",
+      "acceptance": ["original_error_preserved", "measured_recovery_status", "no_false_restoration_claim", "dependent_work_blocked_if_unresolved"]
+    },
+    {
+      "id": "lost_response_v1",
+      "starting_fixture": "accepted_plate_create_v1",
+      "request": "Lose the transport response during an edit, then reconnect and query the same operation ID.",
+      "acceptance": ["one_execution", "status_while_kernel_busy", "durable_outcome", "no_blind_replay_after_restart"]
+    },
+    {
+      "id": "reopen_v1",
+      "starting_fixture": "accepted_frame_resize_v1",
+      "request": "Save and reopen the assembly, then continue its design in a fresh conversation.",
+      "acceptance": ["persistent_project_identity", "semantic_references_resolve", "requirements_available_without_transcript", "successful_followup_edit"]
+    },
+    {
+      "id": "manual_edit_v1",
+      "starting_fixture": "accepted_plate_resize_v1",
+      "request": "Change a driving dimension manually in Fusion, then ask the agent for a dependent revision.",
+      "acceptance": ["manual_change_detected", "intent_reconciled", "manual_work_preserved", "successful_followup_edit"]
+    }
+  ]
+}

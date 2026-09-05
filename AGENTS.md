@@ -13,7 +13,10 @@ or you are resuming after a gap, call `design_summary` first.
 Several documents are usually open at once, and **every tool acts on the
 active one**. If the request names a document, or the active one does not look
 like what was described, call `list_documents` and `switch_document` before
-building. Cutting a lattice into the wrong part is not something a check can
+building. The protocol also binds mutations to an observed document ID and
+rejects a call if the active document changed before execution. A document ID
+identifies an open document during this add-in session; it is not a revision
+number and does not detect every manual edit. Cutting a lattice into the wrong part is not something a check can
 catch — the geometry is perfectly valid, just in the wrong file. Documents
 often share the name "Untitled"; `switch_document` takes an `index` for that. A document may be
 empty, may be unsaved, and may not be the one you last touched — Fusion
@@ -35,12 +38,18 @@ pass a bare number where an expression is expected.
 
 ## Just build it
 
-**Every mutating operation is checkpointed.** If a check fails, that operation
-— and only that operation — is rolled back before you ever see the result. A
-wrong guess costs one call. `undo_last` costs one more. Nothing you do here
-compounds into a ruined session.
+**Execute supported changes directly, then use the returned evidence.** Many
+modeling stages can delete newly appended timeline entries after a failure.
+This does not restore arbitrary edits or deleted preexisting geometry. A tool
+with several stages may retain its earlier successful stages.
 
-That machinery exists so you can move. Use it.
+Failures report `recovery`, including completed stages and what cleanup did.
+`partial` means the whole previous design is not verified as restored; inspect
+the returned `design` before planning dependent work. A timeout means the
+outcome may still be unknown, so call `operation_status` with the returned
+`operation_id` before retrying. `cancel_operation` can cancel queued work; it
+cannot interrupt a kernel call already executing. A replayed result describes
+the original operation's state, not necessarily the current document.
 
 - **Do not inspect to reassure yourself.** Naming a body that does not exist
   costs one call and the error lists every body that does. Calling
@@ -50,9 +59,9 @@ That machinery exists so you can move. Use it.
   the arguments, call it.
 - **Do not ask which dimension was meant** when a competent engineer would
   simply pick one. Pick it, say in one line that you picked it, keep going.
-- **Retry immediately when something fails.** The error names the measurement
-  and what it expected. Change that one thing and call again. Do not
-  re-derive the whole plan.
+- **Retry from known state.** For a preflight rejection, correct the named
+  argument and retry. After a modeling failure, use recovery and state evidence
+  to repair the affected stage. Do not repeat a timed-out mutation blindly.
 
 Ask a question only when guessing wrong would waste real time and the answer
 is not recoverable — which arrangement of four modules, not what fillet radius
@@ -70,13 +79,13 @@ failed and is the only part worth reading.
 
 Two categories matter differently:
 
-- **`error`** — the operation was rolled back. Say which check failed and what
-  it measured.
+- **`error`** — a check failed. Say which check and what it measured, then read
+  `recovery` to determine what remains. Failure does not imply full rollback.
 - **`warning`** — the operation stands, but something real was found. A
   `rib_aspect_ratio` warning means the part is not millable; `cells_tessellate`
   means a lattice's rows are not interlocking. Surface these; do not bury them.
 
-A green block means the geometry is self-consistent. It does **not** mean the
+A green block means the implemented checks passed. It does **not** mean the
 part is what was asked for — only the capture can tell you that. An isogrid
 generator once passed every geometric check while producing stacked rows of
 triangles with no shared vertices, which is not an isogrid at all.
@@ -85,6 +94,12 @@ Do not narrate the passing checks back to the person. They asked for a part,
 not a test report. One line on what you built and anything that failed.
 
 ## Machining
+
+Lattice cells, generated sketch curves, and fillet edges have complexity limits.
+The error gives requested counts and limits before the guarded stage builds.
+Rounded pocket corners multiply curve counts. Suggest larger cells, a smaller
+patterned area, or fewer corner segments when appropriate; do not silently
+change the requested dimensions to make the guard pass.
 
 If the part will be cut on a router or a mill, pass `cutter_diameter` to
 `lattice_pockets` — `"0.125 in"` for a 1/8" end mill. Pocket corners are then
@@ -134,16 +149,10 @@ current interference, so the next call can be the joint itself.
 vocabulary as cuts: `{"kind": "cylindrical", "axis_along": "x"}`,
 `{"kind": "planar", "facing": "+z"}`, `{"extreme": "-x"}`.
 
-**Do not reason about which way round the mate goes.** The tool creates the
-joint, measures interference, and if the parts now overlap it flips the joint
-and measures again, keeping whichever direction the geometry says is right.
-Read `flip_resolved` in the result and report it if true — it means the
-obvious reading of the request was backwards. If neither direction works, the
-targets were wrong rather than the direction, and the joint is rolled back.
-
-This is the error the project was built around: a mate that looks correct in
-the tree, points the wrong way, and is not noticed until ten minutes of work
-sits on top of it. It is one number, and it is now always measured.
+The tool measures interference and can try flipping an overlapping joint.
+Read `flip_resolved` in the result and report it if true. Both directions can
+be collision-free; check the intended axis, facing, and placement as well.
+If the check fails, use the recovery report to determine what was cleaned up.
 
 ## When no tool does what you need
 
@@ -175,8 +184,9 @@ Escalate in this order, and say which rung you are on.
    Python that does not parse is refused before it is written, and the
    previous contents are backed up. `run_tests` checks you did not break a
    generator something else depends on — run it after any edit to a shared
-   module. `FusionCadAgent.py` and `errors.py` are not writable: the first
-   is the bridge you are talking through, the second is never reloaded.
+   module. `FusionCadAgent.py`, `execution.py`, and `errors.py` are not writable
+   through this tool: they own the bridge, operation journal, and stable error
+   identities. Runtime changes require local development and an add-in reload.
 
    The geometry code hot-reloads:
    `patterns.py`, `geom.py`, `assertions.py`, `pick.py`, `ops.py`,

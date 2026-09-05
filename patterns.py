@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 from typing import Sequence
 
+import complexity
 from errors import PatternError
 
 CM_PER_INCH = 2.54
@@ -93,6 +94,9 @@ def isogrid_triangles(
     ``rotation``
         Radians to rotate the finished field about its centre.
     """
+    complexity.lattice_counts(
+        "isogrid", length, width, cell_size, rib_width, margin=margin,
+        row_stagger=row_stagger, row_pitch=row_pitch, include_inverted=include_inverted)
     if cell_size <= 0 or rib_width <= 0:
         raise PatternError("cell_size and rib_width must be positive")
     if cell_size >= width:
@@ -180,6 +184,7 @@ def hex_cells(
     Distinct from isogrid -- three ribs meet at 120 degrees rather than six at
     60 -- and the pattern people usually mean when they say honeycomb.
     """
+    complexity.lattice_counts("hex", length, width, cell_size, rib_width, margin=margin)
     if cell_size <= 0 or rib_width <= 0:
         raise PatternError("cell_size and rib_width must be positive")
     radius = cell_size / 2

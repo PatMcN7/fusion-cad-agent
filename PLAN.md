@@ -1,9 +1,32 @@
 # Plan: an agent that can maintain an engineering design
 
-Written 2026-09-05. Status: proposed implementation plan; implementation has not
-started. This follows `HANDOFF.md` and a source review of the bridge, studio,
+Written 2026-09-05. Status: implementation in progress; live acceptance gates
+remain open. This follows `HANDOFF.md` and a source review of the bridge, studio,
 modeling tools, selection layer, and checkpoints. Findings below have not been
 reproduced in a live Fusion session during this planning pass.
+
+
+## Implementation progress
+
+- Source baseline committed as `021096f`; original suites passed 176 core and
+  90 studio tests. The staged source was checked for credential-shaped content.
+- Implemented bounded lattice/curve/fillet preflight, explicit recovery reports,
+  and whole-tool context for failures after earlier successful stages.
+- Implemented protocol v4 operation IDs, a durable outcome journal, status polling
+  outside Fusion's main thread, queued cancellation, and retry deduplication.
+- Mutations require an observed open-document ID and validate it immediately
+  before dispatch. Each studio chat owns its client binding. These IDs are
+  session-scoped; revision tracking and persistent project identity are pending.
+- CLI, studio, and MCP use the shared transport and schema generator.
+- Added offline failure-injection tests for timeout/retry, restart, persistence
+  failure, document switching, partial cleanup, and complexity limits.
+- Native fixture creation, live recovery proofs, complexity calibration, and all
+  Phase 2 acceptance work remain pending. A live check found no bridge connection
+  metadata. No production CAD document has been changed by this implementation.
+
+See `docs/runtime.md` for the implemented contract and limitations,
+`docs/mutation-audit.md` for the recovery audit, and `benchmarks/cases.json` for
+fixture requirements. Offline tests do not satisfy the live exit gates below.
 
 ## Goal and first milestone
 

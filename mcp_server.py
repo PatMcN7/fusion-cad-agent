@@ -31,7 +31,7 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from bridge_client import Bridge, BridgeError, tool_schemas  # noqa: E402
+from bridge_client import Bridge, BridgeError, CONTROL_TOOLS, tool_schemas  # noqa: E402
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_INFO = {"name": "fusion-cad", "version": "1.0.0"}
@@ -139,7 +139,7 @@ def handle_tools_call(params: dict) -> dict:
                 "isError": True}
 
     try:
-        registry = BRIDGE.registry()
+        registry = CONTROL_TOOLS if name in CONTROL_TOOLS else BRIDGE.registry()
     except BridgeError as exc:
         return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
 
@@ -162,7 +162,7 @@ def handle_tools_call(params: dict) -> dict:
     ]
 
     # Hand the model a picture of what it just did.
-    if ok and mutating and name != "undo_last":
+    if ok and mutating and name not in {"undo_last", "cancel_operation"}:
         encoded = _capture(name)
         if encoded:
             content.append({"type": "text", "text": "Viewport after this operation:"})

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "recorded_date": "2026-09-05",
+  "source_commit": "021096f",
+  "validation": {
+    "core": {"command": "/usr/bin/python3 -m unittest discover -s tests", "passed": 176, "failed": 0},
+    "studio": {"command": "./studio/.venv/bin/python -m unittest discover -s studio/tests -t .", "passed": 90, "failed": 0}
+  },
+  "live_baseline": {
+    "status": "pending",
+    "reason": "Bridge connection.json was absent during implementation; no native fixture runs were performed.",
+    "accepted_tasks": null,
+    "wall_seconds": null,
+    "cost_usd": null,
+    "human_corrections": null
+  }
+}

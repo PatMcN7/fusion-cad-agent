@@ -19,6 +19,10 @@ class WriteFence(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises(ArgumentError):
                 workspace.resolve_writable(path)
 
+    def test_execution_runtime_is_not_writable_through_the_agent(self):
+        with self.assertRaises(ArgumentError):
+            workspace.resolve_writable("execution.py")
+
     def test_the_addin_shell_is_never_writable(self):
         """A syntax error there kills the bridge.
 

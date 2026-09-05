@@ -17,7 +17,7 @@ from typing import Any
 
 from errors import ProtocolError
 
-API_VERSION = 3
+API_VERSION = 4
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 0
 MAX_REQUEST_BYTES = 1024 * 1024
@@ -113,4 +113,12 @@ def validate_request(payload: Any, tools: dict[str, Any]) -> dict[str, Any]:
     if request_id is not None and not isinstance(request_id, str):
         raise ProtocolError("Request field 'request_id' must be a string when supplied.")
 
-    return {"tool": tool, "arguments": arguments, "confirm": confirm, "request_id": request_id}
+    identifier = payload.get("operation_id")
+    if tools[tool]["mutating"] or identifier is not None:
+        from execution import operation_id
+        operation_id(identifier)
+    document_id = payload.get("document_id")
+    if tools[tool]["mutating"] and (not isinstance(document_id, str) or not document_id):
+        raise ProtocolError("Mutating tools require document_id from an observed document")
+    return {"tool": tool, "arguments": arguments, "confirm": confirm,
+            "request_id": request_id, "operation_id": identifier, "document_id": document_id}

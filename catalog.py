@@ -24,6 +24,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 # already delivered as JSON Schema tool definitions, so repeating it here
 # would pay for the same information twice.
 MODULES = {
+    "complexity.py": "geometry work counts and configurable execution limits",
     "patterns.py": "lattice and hole-position math",
     "geom.py": "2D computational geometry",
     "mechanics.py": "closed-form sections, beam cases, DFM rules",

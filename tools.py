@@ -20,6 +20,7 @@ import adsk.core
 import adsk.fusion
 
 import assertions
+import complexity
 import fasteners
 import geom
 import mechanics
@@ -28,7 +29,7 @@ import patterns
 import pick
 import workspace
 from assertions import Check, CheckSuite
-from checkpoints import operation
+from checkpoints import operation, tool_scope
 from errors import (ArgumentError, BridgeError, PatternError, SelectionError,
                     ToolFailure)
 
@@ -40,7 +41,7 @@ _importlib.reload(workspace)
 
 # pick/ops/geom/fasteners are imported here rather than by the shell, so
 # reload them alongside this module. Order matters: ops imports pick.
-for _module in (geom, fasteners, mechanics, patterns, assertions, pick, ops):
+for _module in (complexity, geom, fasteners, mechanics, patterns, assertions, pick, ops):
     _importlib.reload(_module)
 
 CM_PER_INCH = 2.54
@@ -248,7 +249,7 @@ def delete_named_features(arguments: dict[str, Any]) -> dict[str, Any]:
                 f"expected exactly one feature named '{name}', found {len(matches)}"
             )
         before = root.features.count
-        with operation(design, f"delete_feature_{name}") as (_, suite):
+        with operation(design, f"delete_feature_{name}", cleanup_supported=False) as (_, suite):
             removed = bool(matches[0].deleteMe())
             suite.add(Check("feature_deleted", removed, str(removed), "True"))
             suite.require()
@@ -679,6 +680,10 @@ def replace_with_isogrid_bar(arguments: dict[str, Any]) -> dict[str, Any]:
 
     triangles = patterns.isogrid_triangles(
         v["length"], v["width"], v["cell_size"], v["rib_width"])
+    workload = complexity.polygon_counts(triangles)
+    # Conservative bound for this rectangular bar and triangular through pockets.
+    # Enforce before clearing the starting design, then check actual edges again.
+    complexity.Limits.configured().require(fillet_edges=12 + 9 * len(triangles))
     skeletonized = v["skin_thickness"] <= 0
     pocket_depth = v["thickness"] - v["skin_thickness"]
     border = v["rib_width"]
@@ -700,7 +705,7 @@ def replace_with_isogrid_bar(arguments: dict[str, Any]) -> dict[str, Any]:
     preflight.require()
     reports = [preflight.report()]
 
-    with operation(design, "clear_root") as (_, suite):
+    with operation(design, "clear_root", cleanup_supported=False) as (_, suite):
         deleted = _clear_root(root)
         suite.add(assertions.count_equals("root_bodies_cleared", root.bRepBodies.count, 0))
     reports.append(suite.report())
@@ -764,6 +769,7 @@ def replace_with_isogrid_bar(arguments: dict[str, Any]) -> dict[str, Any]:
         "requested": expressions,
         "skeletonized": skeletonized,
         "triangle_pockets": len(triangles),
+        "complexity": workload,
         "pocket_depth_cm": pocket_depth,
         "fillet_radius_cm": used_radius,
         "edges_filleted": original_edges,
@@ -996,14 +1002,18 @@ def add_bellypan(arguments: dict[str, Any]) -> dict[str, Any]:
         preflight.add(assertions.count_equals(
             "bolt_count", len(holes), int(arguments["expected_holes"])))
 
-    triangles = patterns.isogrid_triangles(
-        v["pan_size"], v["pan_size"], v["cell_size"], v["rib_width"], margin=v["border"])
-    preflight.add(assertions.polygons_disjoint("pockets_disjoint", triangles))
-    preflight.add(assertions.pattern_centered("pattern_centered", triangles, (0.0, 0.0), 1e-9))
-    preflight.add(assertions.polygons_clear_of_points(
-        "pockets_clear_of_bolts", triangles, hole_points,
-        hole_radius + v["hole_clearance"]))
-    preflight.add(assertions.minimum_gap("rib_width_held", triangles, v["rib_width"] * 0.99))
+    triangles = []
+    if skeletonize:
+        triangles = patterns.isogrid_triangles(
+            v["pan_size"], v["pan_size"], v["cell_size"], v["rib_width"], margin=v["border"])
+        preflight.add(assertions.polygons_disjoint("pockets_disjoint", triangles))
+        preflight.add(assertions.pattern_centered("pattern_centered", triangles, (0.0, 0.0), 1e-9))
+        preflight.add(assertions.polygons_clear_of_points(
+            "pockets_clear_of_bolts", triangles, hole_points,
+            hole_radius + v["hole_clearance"]))
+        preflight.add(assertions.minimum_gap("rib_width_held", triangles, v["rib_width"] * 0.99))
+    workload = complexity.polygon_counts(triangles)
+    complexity.Limits.configured().require(sketch_curves=workload["sketch_curves"] + len(holes) + 4)
     preflight.require()
     reports = [preflight.report()]
 
@@ -1066,6 +1076,7 @@ def add_bellypan(arguments: dict[str, Any]) -> dict[str, Any]:
         "skeletonized": skeletonize,
         "bolt_holes": len(holes),
         "isogrid_pockets": len(triangles),
+        "complexity": workload,
         "pan_top_z_cm": frame_bottom,
         "mass_reduction_percent": 100 * (solid_plate - pan.volume) / solid_plate,
         "material_source": source,
@@ -1845,6 +1856,7 @@ def cut_polygons(arguments: dict[str, Any]) -> dict[str, Any]:
     root = design.rootComponent
     units = arguments.get("units", "in")
     polygons = _polygons_cm(arguments.get("polygons"), units)
+    complexity.polygon_counts(polygons)
     body = _resolve_target(root, arguments.get("body"))
     plane_name = arguments.get("plane", "top")
     depth_expr = arguments.get("depth")
@@ -1904,6 +1916,7 @@ def extrude_polygons(arguments: dict[str, Any]) -> dict[str, Any]:
     root = design.rootComponent
     units = arguments.get("units", "in")
     polygons = _polygons_cm(arguments.get("polygons"), units)
+    complexity.polygon_counts(polygons)
     height_expr = arguments.get("height")
     if not height_expr:
         raise ArgumentError("height is required, e.g. '1 in'")
@@ -2002,8 +2015,14 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
             raise ArgumentError(
                 "cutter_diameter is too large for this cell_size; "
                 "the pocket would close up")
-        field = geom.fillet_polygons(field, corner_radius,
-                                     int(arguments.get("corner_segments", 6)))
+        segments = arguments.get("corner_segments", 6)
+        if isinstance(segments, bool) or not isinstance(segments, (int, float)) or not math.isfinite(segments) or int(segments) != segments or segments < 2:
+            raise ArgumentError("corner_segments must be an integer >= 2")
+        segments = int(segments)
+        complexity.Limits.configured().require(
+            cells=len(field), sketch_curves=sum(len(p) for p in field) * (segments + 1))
+        field = geom.fillet_polygons(field, corner_radius, segments)
+    workload = complexity.polygon_counts(field)
 
     skin_expr = arguments.get("skin_thickness", "0 in")
     skin = _cm(units_manager, skin_expr, "skin_thickness", allow_zero=True)
@@ -2050,6 +2069,7 @@ def lattice_pockets(arguments: dict[str, Any]) -> dict[str, Any]:
     return {
         "pattern": kind,
         "cells": len(field),
+        "complexity": workload,
         "row_stagger": options.get("row_stagger", 0.0),
         "corner_radius_cm": corner_radius,
         "machinable": bool(corner_radius > 0),
@@ -2175,7 +2195,13 @@ def design_digest() -> dict[str, Any]:
 
 def _echo_state(handler):
     def wrapped(arguments: dict[str, Any]) -> dict[str, Any]:
-        result = handler(arguments)
+        try:
+            with tool_scope(handler.__name__):
+                result = handler(arguments)
+        except Exception as exc:
+            # Errors need state evidence too, especially after a partial tool.
+            setattr(exc, "design", design_digest())
+            raise
         if isinstance(result, dict) and "design" not in result:
             result["design"] = design_digest()
         return result
@@ -2926,4 +2952,3 @@ TOOLS["run_tests"] = {
 
 HANDLERS["write_file"] = write_file
 HANDLERS["run_tests"] = run_tests
-

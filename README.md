@@ -3,6 +3,11 @@
 A local, authenticated bridge that lets an agent inspect and modify the active
 Autodesk Fusion design through Fusion's native in-process API.
 
+Protocol v4 binds mutations to an observed open document and records operation
+IDs for status/retry handling. After upgrading, restart the add-in and use the
+updated clients. See [runtime behavior and limits](docs/runtime.md), the
+[recovery audit](docs/mutation-audit.md), and [implementation progress](PLAN.md).
+
 The premise: **the geometry kernel is already a compiler, and nobody is reading
 its output.** It knows a boolean produced two bodies, that a cut removed
 nothing, that two occurrences overlap by 4.2 cm3. Routing those signals back
@@ -59,8 +64,9 @@ method accepted a sign and then ignored it.
 
 1. **Pre-flight** -- pure Python, before the kernel is touched. Calls the *same*
    `patterns.py` functions the build uses, so the simulation cannot drift.
-2. **Per-operation** -- each operation is checkpointed against the timeline and
-   verified on completion. A failure rewinds that operation and nothing else.
+2. **Per-operation** -- supported modeling stages checkpoint appended timeline
+   entries and attempt cleanup on failure. Recovery reports distinguish cleanup
+   from verified restoration; earlier stages of a compound tool can remain.
 3. **Spec** -- `verify_spec` runs a design spec as a test suite, delegating to
    the same `assertions` the build path uses.
 
@@ -71,7 +77,7 @@ kernel's actual behaviour, and it is the one that earns its keep.
 
 | symptom | check |
 |---|---|
-| flipped mate | interference volume != 0 |
+| overlapping mate | interference volume != 0 (collision-free reversal needs an intent check) |
 | upside down | centre of mass Z, face normal |
 | wrong scale | bounding box |
 | off centre | centroid delta |

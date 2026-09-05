@@ -10,39 +10,17 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from common import load_or_create_token, read_connection_info
+from bridge_client import Bridge
+
+BRIDGE = Bridge()
 
 
-def _request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    connection = read_connection_info()
-    token = load_or_create_token()
-    host = connection.get("host", "127.0.0.1")
-    port = int(connection["port"])
-    url = f"http://{host}:{port}{path}"
-    body = None if payload is None else json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        url,
-        data=body,
-        method=method,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=310) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        try:
-            return json.loads(detail)
-        except json.JSONDecodeError:
-            raise RuntimeError(f"Bridge returned HTTP {exc.code}: {detail}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Could not reach Fusion CAD Agent at {url}: {exc.reason}") from exc
+def _request(method, path, payload=None):
+    return BRIDGE._request(method, path, payload)
 
 
-def _call(tool: str, arguments: dict[str, Any] | None = None, *, confirm: bool = False):
-    return _request(
-        "POST", "/v1/call", {"tool": tool, "arguments": arguments or {}, "confirm": confirm}
-    )
+def _call(tool, arguments=None, *, confirm=False, operation_id=None, document_id=None):
+    return BRIDGE.call(tool, arguments or {}, confirm, operation_id=operation_id, document_id=document_id)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -50,6 +28,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--raw", action="store_true", help="Print the full JSON response.")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    for command in ("operation-status", "cancel-operation"):
+        control = sub.add_parser(command)
+        control.add_argument("operation_id")
     sub.add_parser("health")
     sub.add_parser("tools")
     sub.add_parser("active-document")
@@ -60,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
     call.add_argument("tool")
     call.add_argument("--arguments", default="{}")
     call.add_argument("--confirm", action="store_true")
+    call.add_argument("--operation-id")
+    call.add_argument("--document-id")
 
     capture = sub.add_parser("capture", help="Render the viewport to PNG.")
     capture.add_argument("--views", nargs="+", default=["iso"])
@@ -133,7 +116,11 @@ def main() -> int:
     arguments = _parser().parse_args()
     command = arguments.command
 
-    if command == "health":
+    if command == "operation-status":
+        response = BRIDGE.operation_status(arguments.operation_id)
+    elif command == "cancel-operation":
+        response = BRIDGE.cancel_operation(arguments.operation_id)
+    elif command == "health":
         response = _request("GET", "/v1/health")
     elif command == "tools":
         response = _request("GET", "/v1/tools")
@@ -159,7 +146,7 @@ def main() -> int:
         decoded = json.loads(arguments.arguments)
         if not isinstance(decoded, dict):
             raise RuntimeError("--arguments must decode to a JSON object")
-        response = _call(arguments.tool, decoded, confirm=arguments.confirm)
+        response = _call(arguments.tool, decoded, confirm=arguments.confirm, operation_id=arguments.operation_id, document_id=arguments.document_id)
     elif command == "verify":
         spec: dict[str, Any] = {}
         if arguments.spec:
@@ -214,11 +201,15 @@ def main() -> int:
     if not response.get("ok"):
         error = response.get("error", {})
         print(f"error [{error.get('code')}]: {error.get('message')}", file=sys.stderr)
+        if error.get("operation_id"):
+            print(f"  operation ID: {error['operation_id']}", file=sys.stderr)
+        if error.get("recovery"):
+            print(f"  recovery: {json.dumps(error['recovery'])}", file=sys.stderr)
         if error.get("operation"):
             print(f"  failed operation: {error['operation']}", file=sys.stderr)
         if error.get("rolled_back"):
             print(f"  rolled back: {', '.join(error['rolled_back'])}", file=sys.stderr)
-        for check in error.get("failed_checks", []):
+        for check in error.get("failed_checks") or []:
             print(f"  FAIL {check['name']}: got {check['actual']}, "
                   f"expected {check['expected']}", file=sys.stderr)
         return 1

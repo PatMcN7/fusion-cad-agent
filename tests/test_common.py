@@ -30,8 +30,16 @@ class ProtocolTests(unittest.TestCase):
 
     def test_mutating_tool_accepts_explicit_confirmation(self):
         self.assertTrue(
-            validate_request({"tool": "create_test_box", "confirm": True}, REGISTRY)["confirm"]
+            validate_request({"tool": "create_test_box", "confirm": True, "operation_id": "test-op", "document_id": "doc-A"}, REGISTRY)["confirm"]
         )
+
+    def test_mutation_cannot_bypass_identity_requirements(self):
+        for missing in ("operation_id", "document_id"):
+            payload = {"tool": "create_test_box", "confirm": True,
+                       "operation_id": "test-op", "document_id": "doc-A"}
+            payload.pop(missing)
+            with self.assertRaises(ProtocolError):
+                validate_request(payload, REGISTRY)
 
     def test_rejects_non_boolean_confirmation(self):
         with self.assertRaises(ProtocolError):

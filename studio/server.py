@@ -106,84 +106,15 @@ TRANSCRIPTS_OFF = os.environ.get("STUDIO_TRANSCRIPT", "").lower() in ("0", "off"
 
 # --------------------------------------------------------------- bridge ----
 
-class BridgeError(RuntimeError):
-    pass
-
-
-class Bridge:
-    """Thin client for the Fusion add-in's localhost API."""
-
-    def _request(self, method: str, path: str, payload: dict | None = None) -> dict:
-        try:
-            connection = read_connection_info()
-            token = load_or_create_token()
-        except RuntimeError as exc:
-            raise BridgeError(str(exc)) from exc
-        url = f"http://{connection.get('host', '127.0.0.1')}:{int(connection['port'])}{path}"
-        body = None if payload is None else json.dumps(payload).encode("utf-8")
-        request = urllib.request.Request(
-            url, data=body, method=method,
-            headers={"Authorization": f"Bearer {token}",
-                     "Content-Type": "application/json"},
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=310) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            try:
-                return json.loads(detail)
-            except json.JSONDecodeError:
-                raise BridgeError(f"HTTP {exc.code}: {detail}") from exc
-        except urllib.error.URLError as exc:
-            raise BridgeError(f"Fusion bridge unreachable at {url}: {exc.reason}") from exc
-
-    def registry(self) -> dict[str, Any]:
-        return self._request("GET", "/v1/tools").get("tools", {})
-
-    def call(self, tool: str, arguments: dict, confirm: bool) -> dict:
-        return self._request("POST", "/v1/call",
-                             {"tool": tool, "arguments": arguments, "confirm": confirm})
-
-
-def _property_schema(description: str) -> dict[str, Any]:
-    """Infer a loose JSON type from the registry's prose description.
-
-    The bridge documents arguments in English rather than JSON Schema, so this
-    reads the conventions it uses ("default 3", "default true", "[l, w, h]")
-    and otherwise leaves the type open rather than guessing wrong. A wrong type
-    is worse than an absent one: it makes the model's correct value invalid.
-    """
-    lowered = description.lower()
-    schema: dict[str, Any] = {"description": description}
-    if "default true" in lowered or "default false" in lowered:
-        schema["type"] = "boolean"
-    elif "[l, w, h]" in lowered or "list of three" in lowered or lowered.startswith("list "):
-        schema["type"] = "array"
-        schema["items"] = {"type": "string"}
-    elif "default '" in lowered or "unit expression" in lowered or "e.g." in lowered:
-        schema["type"] = "string"
-    elif "default " in lowered and any(
-            c.isdigit() for c in lowered.split("default ", 1)[1][:6]):
-        schema["type"] = "number"
-    else:
-        schema["type"] = "string"
-    return schema
+from bridge_client import Bridge, BridgeError, tool_schemas  # noqa: E402
+from bridge_client import property_schema as _property_schema  # noqa: E402
 
 
 def tool_specs(registry: dict[str, Any]) -> list[ToolSpec]:
-    """Bridge registry -> neutral tool specs. Generated, never hand-written."""
-    specs = []
-    for name, spec in sorted(registry.items()):
-        properties = {
-            key: _property_schema(str(text))
-            for key, text in (spec.get("arguments") or {}).items()
-        }
-        description = spec.get("description", "")
-        if spec.get("mutating"):
-            description += " (Modifies the design; runs verified and checkpointed.)"
-        specs.append(ToolSpec(name=name, description=description, properties=properties))
-    return specs
+    """Bridge registry -> neutral tool specs, using the shared schema generator."""
+    return [ToolSpec(name=spec["name"], description=spec["description"],
+                     properties=spec["input_schema"]["properties"])
+            for spec in tool_schemas(registry)]
 
 
 # ---------------------------------------------------------------- state ----
@@ -205,6 +136,7 @@ class Session:
     def __init__(self, session_id: str | None = None) -> None:
         self.id = session_id or uuid.uuid4().hex[:12]
         self.lock = threading.Lock()
+        self.bridge = Bridge()  # Each chat retains its own observed document binding.
         self.provider: Provider | None = None
         self.provider_name = os.environ.get("STUDIO_PROVIDER", "anthropic")
         self.model = os.environ.get("STUDIO_MODEL", "claude-opus-5")
@@ -491,7 +423,7 @@ class Agent:
                                   "ok": ok, "result": payload})
 
                 result = ToolResult(call.id, call.name, ok, payload)
-                if ok and is_mutating and call.name != "undo_last":
+                if ok and is_mutating and call.name not in {"undo_last", "cancel_operation"}:
                     shot = self._capture(f"studio_{call.name}")
                     if shot:
                         path, encoded = shot
@@ -813,7 +745,7 @@ class Handler(BaseHTTPRequestHandler):
 
         def work() -> None:
             try:
-                Agent(BRIDGE, provider).run(blocks, recording,
+                Agent(session.bridge, provider).run(blocks, recording,
                                             stopped=session.stop.is_set)
             except Cancelled:
                 # Asked for, so not an error. Say it plainly and end the turn.

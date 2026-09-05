@@ -15,6 +15,7 @@ import math
 from typing import Any, Iterable, Sequence
 
 import assertions
+import complexity
 import fasteners
 import pick
 from assertions import Check, CheckSuite
@@ -72,6 +73,7 @@ def draw_circles(sketch, centers: Sequence[Sequence[float]], radius: float):
 
 
 def draw_polygons(sketch, polygons: Sequence[Sequence[Sequence[float]]], z: float = 0.0):
+    complexity.polygon_counts(polygons)
     lines = sketch.sketchCurves.sketchLines
     for polygon in polygons:
         points = [_to_sketch(sketch, (p[0], p[1], z)) for p in polygon]
@@ -241,6 +243,7 @@ def fillet_all_edges(
     """All-edge fillet with a retry ladder, reporting the radius that held."""
     import adsk.core
 
+    complexity.Limits.configured().require(fillet_edges=body.edges.count)
     attempted = []
     for scale in fallbacks:
         candidate = radius * scale
@@ -276,6 +279,8 @@ def fillet_edges(component, edges, radius: float, *, name: str = "Edge Fillet"):
     """Apply one exact-radius fillet to an explicit edge collection."""
     import adsk.core
 
+    edges = list(edges)
+    complexity.Limits.configured().require(fillet_edges=len(edges))
     collection = adsk.core.ObjectCollection.create()
     for edge in edges:
         collection.add(edge)

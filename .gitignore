@@ -7,3 +7,7 @@ output/
 
 studio/.env
 studio/.venv/
+
+# Native benchmark artifacts and per-run evidence stay local.
+benchmarks/artifacts/
+benchmarks/runs/

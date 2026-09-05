@@ -315,7 +315,7 @@ REPO = pathlib.Path(__file__).resolve().parent
 #   errors.py          deliberately never hot-reloaded. Rewriting it rebinds
 #                      the exception classes and `isinstance` silently stops
 #                      matching, so every error becomes an internal error.
-UNWRITABLE = {"FusionCadAgent.py", "errors.py", "FusionCadAgent.manifest"}
+UNWRITABLE = {"FusionCadAgent.py", "errors.py", "execution.py", "FusionCadAgent.manifest"}
 
 BACKUP_KEEP = 20
 
