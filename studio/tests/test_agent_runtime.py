@@ -66,6 +66,15 @@ class Loop(unittest.TestCase):
         self.assertEqual(sum(k=='provider_timing' for k,d in events),5)
         self.assertEqual(sum(k=='turn_end' for k,d in events),1)
 
+    def test_empty_document_is_available_without_loading_or_visual_review(self):
+        turns=[Turn(tool_calls=[ToolCall('new','create_document',{})]),Turn(text='Created')]
+        provider,bridge,events,automatic,look=self.run_agent(
+            turns,{'create_document':spec(mutating=True)},
+            [{'ok':True,'result':{'document_id':'new-doc','design':{'body_count':0,'timeline_entries':0}}}])
+        bridge.call.assert_called_once_with('create_document',{},confirm=True)
+        automatic.assert_not_called()
+        look.assert_not_called()
+
     def test_loading_tool_group_exposes_required_array_schema(self):
         turns=[Turn(tool_calls=[ToolCall('a','load_tools',{'group':'editing'})]),Turn(tool_calls=[ToolCall('b','delete_entities',{'refs':['entity_1']})]),Turn(tool_calls=[ToolCall('c','capture_viewport',{})]),Turn()]
         registry={'delete_entities':spec({'refs':{'type':'array','items':{'type':'string'}}},True),'capture_viewport':spec()}

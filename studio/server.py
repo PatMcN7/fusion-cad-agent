@@ -456,7 +456,7 @@ class Agent:
                     self.bridge.result_cache[reference] = payload
                     emit("tool_end", {"id": call.id, "name": call.name, "ok": ok, "result": payload})
                     result = ToolResult(call.id, call.name, ok, payload)
-                    if ok and mutating and call.name not in {"cancel_operation", "switch_document", "write_file", "patch_file"}:
+                    if ok and mutating and call.name not in {"cancel_operation", "switch_document", "create_document", "write_file", "patch_file"}:
                         dirty = True
                         final_checked = False
                     if ok and call.name == "capture_viewport":

@@ -1245,5 +1245,11 @@
       "lattice_ref"
     ],
     "additionalProperties": false
+  },
+  "create_document": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
   }
 }

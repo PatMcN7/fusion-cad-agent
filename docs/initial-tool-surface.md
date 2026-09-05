@@ -10,7 +10,8 @@ The successful replay did not establish that this was a good default for other C
 Start with tools that establish the document, inspect existing state, observe
 results, discover capabilities and resolve pending operations. Load modeling
 schemas when their task is known. There is no target count of 12: the current
-selection needs 10 tools. This is a reasoned default, not an empirically proven
+selection needs 11 tools, including the subsequently added empty-document tool.
+This is a reasoned default, not an empirically proven
 optimal set; operation frequency across varied real tasks has not been measured.
 
 | Initial tool | Why it belongs initially |
@@ -20,6 +21,7 @@ optimal set; operation frequency across varied real tasks has not been measured.
 | `inspect_entity` | Focused inspection of a returned feature or sketch instead of repeating a broad query. |
 | `capture_viewport` | Observe the current or finished model independently of its intended construction. |
 | `list_documents` | Locate the correct open document. |
+| `create_document` | Create and activate an empty unsaved design without choosing geometry. |
 | `switch_document` | Select that document before working. |
 | `operation_status` | Resolve pending/unknown operations before another mutation. |
 | `cancel_operation` | Cancel queued work without loading another group first. |
@@ -28,7 +30,7 @@ optimal set; operation frequency across varied real tasks has not been measured.
 
 The three old constructors move out of the default: `create_test_box` is in
 `geometry`, and `lattice_pockets`/`edit_lattice` are in `patterns`. The other nine
-initial tools remain; `design_summary` is added.
+initial tools remain; `design_summary` and `create_document` are added.
 
 General extrusion/cut tools are also loaded on demand. They are more reusable
 than a lattice generator, but an import, assembly inspection, calculation or
@@ -68,8 +70,8 @@ This is tool selection and discovery, not a rewrite of the CAD kernel interface.
 or assemblies. Polygon tools use planar coordinates. There is no general exposed
 sketch-constraint, parameter-edit, revolve, loft, shell or arbitrary fillet tool.
 `edit_lattice` is a managed latest-chain edit, not a generic feature editor.
-`create_test_box` creates a rectangular body and a document together; it does not
-provide an independent empty-document constructor.
+`create_test_box` creates a rectangular body and a document together. The separate
+`create_document` tool now creates an empty document for subsequent modeling/imports.
 
 These limitations are stated in loaded guidance rather than hidden behind a
 generic `execute` wrapper. Extending those native primitives requires separate
@@ -78,14 +80,18 @@ full registry; these selection changes affect Studio.
 
 ## Verification
 
-246 core and 103 Studio tests pass. New checks cover full registry reachability,
+247 core and 104 Studio tests pass. New checks cover full registry reachability,
 absence of specialized constructors from the initial surface, and group loading
 for extrusion, assembly, import, mechanics, validation and lattice editing. They
 also verify that specialized instructions are absent until loaded.
 
-Read-only validation against the running Fusion registry confirms all 43
-native/control tools are reachable and the initial set contains the intended 10.
-No native handlers or geometry changed in this review. No paid-model speed or
+The group review verified all 43 then-registered native/control tools. Adding
+`create_document` brings this to 44 and the initial set to 11. Live validation
+created exactly one empty active unsaved document, with zero bodies, sketches or
+features; replaying its operation ID created no duplicate. Existing documents
+were preserved. A saved-status bug exposed by an untouched unsaved design was
+also fixed. Studio and MCP skip automatic blank-viewport capture for this tool.
+No paid-model speed or
 quality benchmark was rerun; the earlier 55-second plate result belongs to the
 previous initial selection. Broader live-task evaluation is still needed before
 making performance claims for this default.

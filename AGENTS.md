@@ -7,6 +7,11 @@ This file is the repository and MCP brief. Studio starts with the compact
 
 ## Orient before you build
 
+Use `create_document` with no arguments to create and activate an empty unsaved
+Fusion design. It returns the new document ID and state without creating geometry.
+Then use modeling or import tools in that document; `create_test_box` creates
+another document, so do not use it merely to initialize the workspace.
+
 You do not know what is on screen. If the request refers to existing geometry,
 or you are resuming after a gap, call `design_summary` first.
 

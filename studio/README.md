@@ -104,7 +104,8 @@ the GLM measurements do not establish their live reliability or performance.
 **Tool schemas are explicit.** The bridge's `/v1/tools` registry publishes
 `tool_schemas.json` contracts, including required fields and array item types.
 Both client and native dispatch validate them before execution. Studio begins
-with 10 general inspection, document, operation-control and discovery tools.
+with 11 general inspection, document, operation-control and discovery tools,
+including `create_document` to create and activate an empty unsaved design.
 `load_tools` adds geometry, editing, patterns, assembly, generators, engineering,
 validation, files, source, documents or diagnostics as needed. Specialist
 instructions appear only with their group. See the

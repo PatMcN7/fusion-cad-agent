@@ -13,7 +13,8 @@ starting point; this update and `PLAN.md` supersede their status claims.
 - Studio uses `studio/agent_runtime.py` as its compact prompt; MCP uses
   `catalog.brief()` and this repository's `AGENTS.md`. Registered tools publish
   explicit schemas; prose inference is only a legacy client fallback.
-- Studio now starts with 10 general inspection/discovery/control tools. Modeling
+- Studio now starts with 11 general document/inspection/discovery/control tools,
+  including `create_document` for an empty unsaved design. Modeling
   and specialized workflows load by group; see `docs/initial-tool-surface.md`.
 - Read `docs/agent-interface-validation.md` for replay evidence, current test
   counts, and limitations. `docs/runtime.md` describes the execution contract.

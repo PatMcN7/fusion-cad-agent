@@ -4,7 +4,7 @@ import json
 # The initial surface should help with any document, not choose its geometry.
 GROUPS = {
     "core": {"design_summary", "feature_tree", "inspect_entity", "capture_viewport",
-             "list_documents", "switch_document", "operation_status", "cancel_operation"},
+             "create_document", "list_documents", "switch_document", "operation_status", "cancel_operation"},
     "geometry": {"create_test_box", "extrude_polygons", "cut_polygons"},
     "editing": {"delete_entities", "delete_named_features", "undo_last"},
     "patterns": {"lattice_pockets", "edit_lattice", "router_fillet_pocket_corners"},
@@ -20,7 +20,7 @@ GROUPS = {
 }
 
 GROUP_DESCRIPTIONS = {
-    "core": "design and feature inspection, viewport, document selection, operation status",
+    "core": "design and feature inspection, viewport, empty document creation/selection, operation status",
     "geometry": "new rectangular body/document, planar polygon extrusion and cuts",
     "editing": "explicit trailing-feature deletion and scoped undo; not arbitrary parameter editing",
     "patterns": "isogrid/hex lattices, managed lattice revisions and router pocket fillets",
@@ -43,6 +43,8 @@ GROUP_GUIDANCE = {
 
 PROMPT = """You operate live Autodesk Fusion. Execute the user's CAD work using tools.
 The initial tools cover orientation, inspection, observation, and capability loading.
+create_document creates and activates an empty unsaved design; use it before
+modeling or importing into a new document. It creates no placeholder geometry.
 For existing geometry, use design_summary for bodies/components and dimensions,
 feature_tree for native features, or inspect_entity for a returned feature reference.
 Use the returned state instead of repeating inspection after every operation.

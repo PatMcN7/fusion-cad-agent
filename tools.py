@@ -591,6 +591,13 @@ def verify_spec(arguments: dict[str, Any]) -> dict[str, Any]:
 
 # ------------------------------------------------------------- modelling ----
 
+def create_document(_: dict[str, Any]) -> dict[str, Any]:
+    """Create and activate an empty, unsaved Fusion design."""
+    document, _ = _new_design()
+    return {"created_unsaved_document": document.name,
+            "document": _document_metadata()}
+
+
 def create_test_box(arguments: dict[str, Any]) -> dict[str, Any]:
     name = _safe_name(arguments.get("name"), "Agent Test Box")
     document, design = _new_design()
@@ -2213,7 +2220,7 @@ def design_digest() -> dict[str, Any]:
             bodies.extend(_digest_body(b) for b in pick.bodies(component))
         return {
             "document": document.name if document else None,
-            "saved": bool(document and not document.isModified),
+            "saved": bool(document and document.isSaved and not document.isModified),
             "timeline_entries": design.timeline.count,
             "body_count": len(bodies),
             "bodies": bodies,
@@ -3080,6 +3087,9 @@ def _register(name, handler, description, args, required=(), mutating=False):
 
 
 _str = lambda description: {"type": "string", "description": description}
+_register("create_document", create_document,
+          "Create and activate a new empty, unsaved Fusion design document. Creates no bodies or sketches. Returns its document ID and design state; use modeling/import tools afterward.",
+          {}, mutating=True)
 _register("feature_tree", feature_tree, "Inspect native feature/sketch references, curve counts, health and profile dependencies.",
           {"component": _str("Optional exact component name")})
 _register("inspect_entity", inspect_entity, "Inspect one native feature or sketch by its returned reference.",

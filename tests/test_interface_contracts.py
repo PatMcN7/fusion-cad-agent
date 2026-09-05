@@ -15,12 +15,22 @@ from tool_contracts import validate
 
 
 class Contracts(unittest.TestCase):
+    def test_untouched_unsaved_document_digest_is_not_marked_saved(self):
+        from types import SimpleNamespace
+        document=SimpleNamespace(name='Untitled',isSaved=False,isModified=False)
+        design=SimpleNamespace(allComponents=SimpleNamespace(count=0),timeline=SimpleNamespace(count=0))
+        with patch.object(tools,'APP',SimpleNamespace(activeDocument=document)), patch.object(tools,'_active_design',return_value=design):
+            digest=tools.design_digest()
+        self.assertFalse(digest['saved'])
+        self.assertEqual(digest['body_count'],0)
+
     def test_general_initial_surface_and_complete_group_discovery(self):
         from studio import agent_runtime
         from bridge_client import CONTROL_TOOLS
         registry={**tools.TOOLS,**CONTROL_TOOLS}
         initial=agent_runtime.select(registry,{'core'})
-        self.assertEqual(len(initial),10)
+        self.assertEqual(len(initial),11)
+        self.assertIn('create_document',initial)
         self.assertIn('design_summary',initial)
         self.assertFalse(set(initial)&{'create_test_box','lattice_pockets','edit_lattice','create_tube_frame'})
         assigned=set().union(*agent_runtime.GROUPS.values())

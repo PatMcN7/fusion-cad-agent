@@ -162,7 +162,7 @@ def handle_tools_call(params: dict) -> dict:
     ]
 
     # Hand the model a picture of what it just did.
-    if ok and mutating and name not in {"undo_last", "cancel_operation"}:
+    if ok and mutating and name not in {"undo_last", "cancel_operation", "create_document"}:
         encoded = _capture(name)
         if encoded:
             content.append({"type": "text", "text": "Viewport after this operation:"})
