@@ -1,6 +1,6 @@
 # Fusion CAD Agent
 
-An AI-assisted CAD interface for Autodesk Fusion, built by Patrick McNaughton. Describe a modeling task in a browser chat or connect an MCP client. The agent inspects and edits the open design through Fusion’s native API.
+An AI-assisted CAD interface for Autodesk Fusion. Describe a modeling task in a browser chat or connect an MCP client. The agent inspects and edits the open design through Fusion’s native API.
 
 ## Features
 
@@ -8,8 +8,6 @@ An AI-assisted CAD interface for Autodesk Fusion, built by Patrick McNaughton. D
 - Attach selected faces and annotated viewport captures to clarify what to change.
 - Check dimensions, body counts, interference, and feature health after supported operations.
 - Use multiple model providers through Studio, or call the bridge directly from the CLI.
-
-The bridge runs locally with token authentication. Changes are bound to an observed document, and operation IDs let clients check timed-out requests without blindly repeating edits.
 
 ## Setup (macOS)
 
@@ -66,10 +64,8 @@ studio/.venv/bin/python -m unittest discover -s tests
 (cd studio && .venv/bin/python -m unittest discover -s tests -t .)
 ```
 
-Registered geometry modules support hot-reloading. Bridge changes require restarting the add-in; Studio and client changes require restarting those processes.
-
 ## Limits
 
-Fusion must be open; this is not a headless CAD engine. Tools modify the active document, so save your work and start with a disposable design. Recovery is limited, and passing checks do not establish engineering correctness. Source-development presets can edit and execute local code; enable them only deliberately. Keep the services on localhost.
+Fusion must be open, tools modify the active document, so save your work and start with a disposable design. Recovery is limited.
 
 See [runtime behavior](docs/runtime.md) and [recovery limits](docs/mutation-audit.md).
