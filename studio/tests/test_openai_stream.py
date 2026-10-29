@@ -49,6 +49,36 @@ def provider_with(chunks):
 
 
 class StreamedToolCalls(unittest.TestCase):
+    def test_anthropic_required_limit_uses_model_maximum(self):
+        from providers.anthropic_provider import AnthropicProvider
+        p=AnthropicProvider.__new__(AnthropicProvider)
+        p.model='model'
+        p.client=types.SimpleNamespace(models=types.SimpleNamespace(retrieve=lambda model:types.SimpleNamespace(id=model,max_tokens=123456,max_input_tokens=200000)))
+        p.check()
+        self.assertEqual(p._model_output_maximum,123456)
+
+    def test_request_does_not_impose_output_token_cap(self):
+        from unittest.mock import Mock
+        p=provider_with([])
+        p._create=Mock(return_value=iter([chunk(finish='stop')]))
+        p.stream('sys',[],lambda *a:None)
+        self.assertNotIn('max_tokens',p._create.call_args.kwargs)
+        self.assertNotIn('max_completion_tokens',p._create.call_args.kwargs)
+
+    def test_truncated_tool_call_keeps_length_finish_reason(self):
+        p=provider_with([chunk(calls=[call_fragment(0,'a','create_document','{}')]),chunk(finish='length')])
+        self.assertEqual(p.stream('sys',[],lambda *a:None).stop_reason,'length')
+
+    def test_multiple_tool_images_are_all_sent(self):
+        from providers import ToolResult
+        p=provider_with([])
+        result=ToolResult('one','capture_viewport',True,{},images=[
+            {'data':'first','media_type':'image/png','label':'top.png'},
+            {'data':'second','media_type':'image/png','label':'iso.png'}])
+        p.add_tool_results([result])
+        images=[b['image_url']['url'] for b in p.messages[-1]['content'] if b['type']=='image_url']
+        self.assertEqual(images,['data:image/png;base64,first','data:image/png;base64,second'])
+
     def test_arguments_split_across_fragments_reassemble(self):
         p = provider_with([
             chunk(calls=[call_fragment(0, "call_a", "create_test_box", '{"wid')]),
@@ -142,6 +172,28 @@ class StreamedText(unittest.TestCase):
 
 
 class HistoryShape(unittest.TestCase):
+    def test_reasoning_survives_tool_result_round_trip(self):
+        from providers import ToolResult
+        p=provider_with([chunk(reasoning='Need the '),chunk(reasoning='module file.'),
+                         chunk(calls=[call_fragment(0,'file','list_files','{}')])])
+        p.stream('sys',[],lambda *a:None)
+        p.add_tool_results([ToolResult('file','list_files',True,{'entries':['module.step']})])
+        requests=[]
+        p.client.chat.completions.create=lambda **kw: requests.append(kw) or iter([chunk(content='Found it')])
+        p.stream('sys',[],lambda *a:None)
+        history=requests[0]['messages']
+        self.assertEqual(history[1]['reasoning_content'],'Need the module file.')
+        self.assertEqual(history[2]['tool_call_id'],'file')
+        self.assertIn('module.step',history[2]['content'])
+
+    def test_structured_reasoning_sequence_is_preserved_unmodified(self):
+        first=chunk();first.choices[0].delta.reasoning_details=[{'type':'reasoning.text','text':'Inspect','index':0,'signature':None}]
+        second=chunk();second.choices[0].delta.reasoning_details=[{'type':'reasoning.text','text':' the file','index':0},
+            {'type':'reasoning.encrypted','data':'opaque-signature','index':1}]
+        p=provider_with([first,second,chunk(calls=[call_fragment(0,'file','list_files','{}')])])
+        p.stream('sys',[],lambda *a:None)
+        self.assertEqual(p.messages[-1]['reasoning_details'],first.choices[0].delta.reasoning_details+second.choices[0].delta.reasoning_details)
+
     def test_assistant_turn_records_native_tool_calls(self):
         p = provider_with([
             chunk(calls=[call_fragment(0, "a", "health", "{}")]),

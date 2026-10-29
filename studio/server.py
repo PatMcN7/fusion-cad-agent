@@ -15,10 +15,9 @@ Three design notes:
    Nothing is hand-written, so a tool added to tools.py appears here on the
    next page load and cannot drift from its implementation.
 
-2. After every mutating tool the harness captures the viewport and gives the
-   image to the model. It therefore *sees* what it built rather than only
-   reading measurements back -- the gap that let an off-centre lattice and an
-   unsupported pan edge through in earlier sessions.
+2. The design record pins requirements, dependencies and evidence outside the
+   trimmed message history. Targeted visual checks resolve uncertainty, with
+   a final viewport review after modeling.
 
 3. The model backend is pluggable (see providers/). The agent loop below is
    written against the neutral protocol and never branches on vendor.
@@ -58,13 +57,13 @@ import providers  # noqa: E402
 from providers import (Cancelled, Provider, ProviderError, ToolResult,  # noqa: E402
                        ToolSpec)
 
+from design_state import DesignState
 from common import agent_home, load_or_create_token, read_connection_info  # noqa: E402
 
 # Captures are fed back on every mutating call, so keep them modest -- a
 # full-resolution frame can cost several thousand tokens each time.
 CAPTURE_WIDTH = 1100
 CAPTURE_HEIGHT = 825
-MAX_LOOP_STEPS = 80
 # A fetched PDF can render to many pages; looking at all of them would cost
 # more than the drawing is worth.
 MAX_TOOL_IMAGES = 4
@@ -103,6 +102,7 @@ TRANSCRIPTS_OFF = os.environ.get("STUDIO_TRANSCRIPT", "").lower() in ("0", "off"
 from bridge_client import Bridge, BridgeError, tool_schemas  # noqa: E402
 from bridge_client import property_schema as _property_schema  # noqa: E402
 import agent_runtime
+import face_attachments
 from tool_contracts import validate as validate_arguments
 from errors import ArgumentError
 
@@ -136,17 +136,14 @@ class Session:
         self.id = session_id or uuid.uuid4().hex[:12]
         self.lock = threading.Lock()
         self.bridge = Bridge()  # Each chat retains its own observed document binding.
+        self.bridge.design_state = DesignState(agent_home() / "design-states" / (self.id + ".json"))
+        self.bridge.design_state.save()
         self.provider: Provider | None = None
         self.provider_name = os.environ.get("STUDIO_PROVIDER", "anthropic")
         self.model = os.environ.get("STUDIO_MODEL", "claude-opus-5")
         self.base_url = os.environ.get("STUDIO_BASE_URL") or None
-        # Low, not high. A logged session spent 96% of everything it
-        # generated on reasoning -- 49k thinking tokens against 1.9k of
-        # visible output -- and 82% of its wall clock waiting for it. The
-        # hard geometry lives in patterns.py and the checks; what the model
-        # is doing here is choosing a tool and filling in arguments, and
-        # high effort did not make it better at that. Raise it per chat when
-        # a request genuinely needs planning.
+        # Keep execution economical. Open-ended tasks use a bounded design
+        # record and targeted evidence gathering; effort remains user-selectable.
         self.effort = os.environ.get("STUDIO_EFFORT", "low")
         self.error: str | None = None
         self.title = "New chat"
@@ -167,7 +164,7 @@ class Session:
     def record(self, kind: str, data: Any) -> None:
         """Append one renderable entry. Streamed text folds into the last one."""
         self.updated = time.time()
-        if kind == "text" and self.log and self.log[-1]["kind"] == "text":
+        if kind in {"text", "thinking"} and self.log and self.log[-1]["kind"] == kind:
             self.log[-1]["data"]["text"] += data.get("text", "")
             return
         if kind == "usage" and isinstance(data, dict):
@@ -175,7 +172,7 @@ class Session:
                 self.cost = float(data["session_cost_usd"])
             elif data.get("cost_usd"):
                 self.cost += float(data["cost_usd"])
-        self.log.append({"kind": kind, "data": data})
+        self.log.append({"kind": kind, "data": dict(data) if isinstance(data,dict) else data})
         # A long chat is bounded so that reopening it stays fast; the full
         # record is in the transcript, which is never trimmed.
         if len(self.log) > 800:
@@ -192,7 +189,7 @@ class Session:
                 "updated": self.updated, "model": self.model,
                 "provider": self.provider_name, "busy": self.busy,
                 "messages": sum(1 for e in self.log if e["kind"] == "user"),
-                "cost": round(self.cost, 5)}
+                "cost": round(self.cost, 5), "design_state": self.bridge.design_state.snapshot()}
 
     # ---- backend ---------------------------------------------------------
 
@@ -253,6 +250,15 @@ class SessionStore:
         with self._lock:
             if session_id and session_id in self._sessions:
                 return self._sessions[session_id]
+            if (session_id and len(session_id) == 12 and
+                    all(c in "0123456789abcdef" for c in session_id) and
+                    (agent_home() / "design-states" / (session_id + ".json")).is_file()):
+                session = Session(session_id)
+                if session.bridge.design_state.entries:
+                    session.title = "Recovered design record"
+                    session.record("text", {"text": "Recovered the design record with fresh model context. Geometry evidence needs rechecking; previous chat messages are in the transcript archive."})
+                self._sessions[session_id] = session
+                return session
             if self._sessions:
                 return max(self._sessions.values(), key=lambda s: s.updated)
         return self.create()
@@ -262,6 +268,8 @@ class SessionStore:
             session = self._sessions.pop(session_id, None)
         if session and session.recorder:
             session.recorder.close(reason="chat deleted")
+        if session and session.bridge.design_state.path:
+            session.bridge.design_state.path.unlink(missing_ok=True)
         return session is not None
 
     def listing(self) -> list[dict[str, Any]]:
@@ -299,23 +307,9 @@ class Agent:
 
     def _look(self, result: ToolResult, encoded: str,
               requested: dict | None = None) -> str | None:
-        """Attach the capture to the tool result, as picture or as prose.
-
-        An image joins the transcript permanently and is re-sent on every
-        later turn; a description costs a fraction of that and answers the
-        same question -- does this look like the thing that was asked for.
-        The vision call itself carries no history, so the model doing the
-        looking can be a frontier one while the loop runs something small.
-
-        The *arguments* go with the image. A describer told only "this is the
-        model" can narrate but cannot judge; told "3 inch hex cells were
-        requested" it can say the cells look like an inch. That difference is
-        the whole point -- the geometric checks already prove a result is
-        self-consistent, and the only thing left for a picture to catch is a
-        result that is consistent with the wrong thing.
-        """
-        if DESCRIBER is None:
-            result.image_b64 = encoded
+        """Show images directly to a capable worker; describe only as fallback."""
+        if getattr(self.provider,"supports_images",True):
+            result.images.append({"data":encoded,"media_type":"image/png"})
             return None
         note = f"This is the model immediately after `{result.name}` ran."
         if requested:
@@ -324,9 +318,9 @@ class Agent:
                      + "\n\nSay whether what you see matches them. If a count, "
                        "size or placement looks different from what was asked "
                        "for, lead with that.")
+        if DESCRIBER is None:
+            raise ProviderError("This worker cannot see images and no vision fallback is configured.")
         description = DESCRIBER.describe(encoded, note, emit=self.observe)
-        if VISION_MODE == "both":
-            result.image_b64 = encoded
         return description
 
     def _look_at_file(self, result: ToolResult, path: str) -> str | None:
@@ -336,17 +330,17 @@ class Agent:
         except OSError:
             return None
         name = Path(path).name
-        if DESCRIBER is None:
-            result.image_b64 = encoded
+        if getattr(self.provider,"supports_images",True):
+            result.images.append({"data":encoded,"media_type":"image/jpeg" if Path(path).suffix.lower() in {".jpg",".jpeg"} else "image/png","label":Path(path).name})
             return None
+        if DESCRIBER is None:
+            raise ProviderError("This worker cannot see images and no vision fallback is configured.")
         text = DESCRIBER.describe(
             encoded,
             f"This image came back from `{result.name}` as {name}. It may be an "
             "engineering drawing rather than a CAD viewport. Report the "
             "dimensions, hole patterns and callouts you can actually read. "
             + "Expected completed stage: " + self.expected_stage, emit=self.observe)
-        if VISION_MODE == "both":
-            result.image_b64 = encoded
         # Append rather than replace: one tool call can return several pages.
         result.description = ((result.description or "")
                               + f"\n\n[{name}]\n{text}").strip()
@@ -359,42 +353,70 @@ class Agent:
         emit("turn_start", {})
         self.bridge.enabled_groups = {"core"}  # Start each user task with the small toolset.
         if not hasattr(self.bridge, "result_cache"): self.bridge.result_cache = {}
+        design_state = getattr(self.bridge, "design_state", None)
+        if design_state is not None:
+            # Between user turns the person or another client may have edited Fusion.
+            design_state.invalidate()
+            emit("design_state", design_state.snapshot())
         repeated = {}
+        read_loop = agent_runtime.ReadLoopGuard()
         consecutive_failures = 0
         dirty = False
         final_checked = False
         try:
             registry = self.bridge.registry()
             self.provider.add_user(blocks)
-            for step in range(MAX_LOOP_STEPS):
+            while not self.stopped():
+                prepare = getattr(self.provider, "prepare_runtime", None)
+                if prepare is not None:
+                    prepare(registry=registry,
+                            design_state=design_state.snapshot() if design_state is not None else None,
+                            document_id=getattr(self.bridge, "_document_id", None),
+                            unresolved_operation=getattr(self.bridge, "_unresolved", None),
+                            stopped=self.stopped)
                 selected = agent_runtime.select(registry, self.bridge.enabled_groups)
                 specs = tool_specs(selected)
                 emit("tools", {"count": len(specs), "names": sorted(selected),
                                "capability_version": getattr(self.bridge, "capability_version", None)})
-                self.provider.max_output_tokens = int(os.environ.get(
-                    "STUDIO_SOURCE_MAX_TOKENS" if "source" in self.bridge.enabled_groups else "STUDIO_ACTION_MAX_TOKENS",
-                    "4096" if "source" in self.bridge.enabled_groups else "2048"))
                 model_start, first = time.monotonic(), None
                 pending_text = []
                 def observe(event, data):
                     nonlocal first
                     if first is None and event in {"text", "thinking", "tool_pending"}:
                         first = time.monotonic() - model_start
-                    if event == "text": pending_text.append(data)
+                    if event == "text": pending_text.append(dict(data))
                     else: emit(event, data)
                 prompt = SYSTEM_PROMPT + "\n" + agent_runtime.guidance(self.bridge.enabled_groups)
+                if design_state is not None:
+                    prompt += design_state.prompt()
                 turn = self.provider.stream(prompt, specs, observe)
-                emit("provider_timing", {"role": "worker", "seconds": time.monotonic()-model_start,
+                emit("provider_timing", {"role": getattr(self.provider, "timing_role", "worker"), "seconds": time.monotonic()-model_start,
                                          "first_token_seconds": first})
                 if turn.usage: emit("usage", turn.usage)
                 if getattr(self.provider, "is_agent", False):
                     for data in pending_text: emit("text", data)
                     break
-                if turn.stop_reason in {"refusal", "length"}:
-                    emit("error", {"message": "Model refused or reached its output limit; result may be incomplete."})
-                    if not turn.tool_calls: break
+                if turn.stop_reason == "length":
+                    for data in pending_text: emit("text", data)
+                    # A provider's own output boundary is not the end of the task.
+                    # Never execute calls from a response truncated mid-generation.
+                    if turn.tool_calls:
+                        self.provider.add_tool_results([ToolResult(call.id,call.name,False,
+                            {"code":"incomplete_response","execution_started":False,
+                             "message":"Provider response truncated; this call was not executed. Reissue the complete call."}) for call in turn.tool_calls])
+                    emit("progress_warning", {"message":"Provider output boundary reached; continuing automatically. No tool calls from the incomplete response were executed."})
+                    self.provider.add_user([{"type":"text","text":"Your provider ended the previous response at its output boundary. Continue the same task from the available evidence. Calls in that incomplete response were not executed; reissue any needed complete calls."}])
+                    continue
+                if turn.stop_reason == "refusal":
+                    for data in pending_text: emit("text", data)
+                    if not pending_text and turn.text: emit("text", {"text":turn.text})
+                    if turn.tool_calls:
+                        self.provider.add_tool_results([ToolResult(call.id,call.name,False,
+                            {"code":"provider_refusal","execution_started":False}) for call in turn.tool_calls])
+                    emit("error", {"code":"provider_refusal","message":"The provider refused this response. See its explanation above; this is not a token limit or a user stop."})
+                    break
                 if not turn.tool_calls:
-                    if dirty and not final_checked:
+                    if dirty and not final_checked and not getattr(self.provider, "native_workflows", False):
                         # One fallback review at the final boundary, never after every mutation.
                         final_checked = True
                         shot_start = time.monotonic()
@@ -407,8 +429,7 @@ class Agent:
                             if note: emit("vision", {"id": "final_review", "text": note})
                             emit("capture", {"path": path, "url": "/api/image?path="+path})
                             feedback = [{"type": "text", "text": "Final visual review is already completed (uncertain observation): " + (note or "Inspect the attached capture; do not infer unseen feature details.") + " Give the final outcome in at most 80 words. Do not capture again unless an unresolved issue requires a different view. Do not claim unmeasured facts."}]
-                            if result.image_b64:
-                                feedback.append({"type": "image", "data": result.image_b64, "media_type": "image/png"})
+                            feedback.extend({"type":"image",**img} for img in result.image_blocks())
                             self.provider.add_user(feedback)
                             continue
                         emit("error", {"message": "Final viewport capture was unavailable; visual verification is incomplete."})
@@ -416,13 +437,17 @@ class Agent:
                     break
                 for data in pending_text: emit("text", data)
                 results = []
+                face_request = None
                 for call in turn.tool_calls:
                     spec = selected.get(call.name)
                     mutating = bool(spec and spec.get("mutating"))
                     emit("tool_start", {"id": call.id, "name": call.name,
                                         "arguments": call.arguments, "mutating": mutating})
+                    tool_started = time.monotonic()
                     signature = json.dumps([call.name, call.arguments], sort_keys=True)
                     try:
+                        if face_request:
+                            raise ArgumentError("Awaiting the user's face selection; this later call was not executed.")
                         if self.stopped(): raise ArgumentError("Stopped before execution")
                         if not spec: raise ArgumentError("Tool is not loaded; use load_tools to expose its group")
                         validate_arguments(call.arguments, next(s for s in specs if s.name == call.name).json_schema())
@@ -434,12 +459,21 @@ class Agent:
                             payload = {"loaded": call.arguments["group"], "available": sorted(agent_runtime.select(registry, self.bridge.enabled_groups)),
                                        "capability_version": getattr(self.bridge, "capability_version", None)}
                             outcome = {"ok": True, "result": payload}
+                        elif call.name == "request_face_selection":
+                            face_request = {**call.arguments,"document_id":getattr(self.bridge,"_document_id",None)}
+                            outcome = {"ok": True, "result": {"status":"awaiting_user_faces",**face_request}}
                         elif call.name == "get_result":
                             payload = self.bridge.result_cache[call.arguments["result_ref"]]
                             for key in call.arguments.get("field", "").split("."):
                                 if key: payload = payload[int(key)] if isinstance(payload, list) else payload[key]
                             outcome = {"ok": True, "result": payload}
                         else:
+                            if mutating:
+                                read_loop.reset()
+                                if design_state is not None and design_state.entries:
+                                    warnings = [warning for warning in design_state.warnings() if ": stale" in warning or ": blocked" in warning]
+                                    if warnings:
+                                        emit("progress_warning", {"message": "Design dependencies need attention: " + "; ".join(warnings[:3])})
                             outcome = self.bridge.call(call.name, call.arguments, confirm=mutating)
                     except ArgumentError as exc:
                         outcome = {"ok": False, "error": {"code": exc.code, "message": str(exc), "context": exc.context, "execution_started": False}}
@@ -450,11 +484,24 @@ class Agent:
                     ok = bool(outcome.get("ok"))
                     consecutive_failures = 0 if ok and mutating else consecutive_failures + (not ok)
                     payload = outcome.get("result") if ok else outcome.get("error")
+                    if ok and not mutating:
+                        unchanged = read_loop.observe(call.name, call.arguments, payload)
+                        if unchanged >= 2:
+                            warning = (f"{call.name} returned the same result {unchanged} times with the same arguments. "
+                                       "Reuse the available result and choose a different action. Do not repeat this query.")
+                            if call.name == "list_files" and isinstance(payload, dict) and payload.get("count") == 0:
+                                warning += " No files matched. The pattern is a filename glob; use a different pattern or directory."
+                            if isinstance(payload, dict):
+                                payload = {**payload, "repeat_warning": warning}
+                            emit("progress_warning", {"name": call.name, "repeats": unchanged, "message": warning})
                     repeated[signature] = 0 if ok else repeated.get(signature, 0) + 1
                     reference = "result_" + call.id
                     if isinstance(payload, dict): payload = {**payload, "result_ref": reference}
                     self.bridge.result_cache[reference] = payload
-                    emit("tool_end", {"id": call.id, "name": call.name, "ok": ok, "result": payload})
+                    emit("tool_end", {"id": call.id, "name": call.name, "ok": ok, "result": payload,
+                                      "seconds": time.monotonic() - tool_started})
+                    if design_state is not None and (mutating or call.name == "update_design_state"):
+                        emit("design_state", design_state.snapshot())
                     result = ToolResult(call.id, call.name, ok, payload)
                     if ok and mutating and call.name not in {"cancel_operation", "switch_document", "create_document", "write_file", "patch_file"}:
                         dirty = True
@@ -465,21 +512,22 @@ class Agent:
                         dirty = False
                     if ok and not mutating:
                         for path in _result_images(payload)[:MAX_TOOL_IMAGES]:
-                            looked = self._look_at_file(result, path)
+                            looked = (None if getattr(self.provider, "native_workflows", False)
+                                      else self._look_at_file(result, path))
                             if looked: emit("vision", {"id": call.id, "text": looked})
                             emit("capture", {"path": path, "url": "/api/image?path=" + path})
                     if ok and call.name in {"write_file", "patch_file"}:
                         registry = self.bridge.registry()
                     results.append(result)
                 self.provider.add_tool_results(results)
-                if consecutive_failures >= 5:
-                    emit("error", {"message": "Stopped after five failed calls without a successful edit. The task is incomplete; inspect the last error and returned design before retrying."})
+                if face_request:
+                    emit("face_selection_request", face_request)
                     break
+                if consecutive_failures >= 5:
+                    emit("progress_warning", {"message":"Repeated tool failures: use the returned errors to change approach or ask for the missing input."})
                 if self.stopped():
                     emit("stopped", {})
                     break
-            else:
-                emit("error", {"message": "Agent step limit reached; inspect the last operation before continuing."})
         finally:
             emit("turn_end", {"active_seconds": time.monotonic()-started})
             emit("done", {})
@@ -583,6 +631,8 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/chat":
             self._chat()
+        elif path == "/api/face-selection":
+            self._face_selection()
         elif path == "/api/model":
             self._set_model()
         elif path == "/api/stop":
@@ -598,6 +648,11 @@ class Handler(BaseHTTPRequestHandler):
                 session.ensure().reset()
             except ProviderError:
                 pass
+            session.bridge.design_state = DesignState(session.bridge.design_state.path)
+            session.bridge.design_state.entries = {}
+            session.bridge.design_state.next_action = ""
+            session.bridge.design_state.evidence = {}
+            session.bridge.design_state.save()
             session.log.clear()
             session.cost = 0.0
             self._send(HTTPStatus.OK, {"ok": True, "id": session.id})
@@ -629,6 +684,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             provider = session.ensure()
             info["model_status"] = provider.check()
+            info["vision"]["mode"] = ("off" if getattr(provider, "native_workflows", False)
+                                      else "direct" if provider.supports_images else "describe")
             info["model_ok"] = True
             info["capabilities"] = {
                 "images": provider.supports_images,
@@ -708,6 +765,30 @@ class Handler(BaseHTTPRequestHandler):
         path = response["result"]["captures"][0]["path"]
         self._send(HTTPStatus.OK, {"path": path, "url": "/api/image?path=" + path})
 
+    def _face_selection(self) -> None:
+        try:
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                raise ArgumentError("Invalid selection request")
+            action = payload.get("action", "attach")
+            if action == "attach":
+                outcome = BRIDGE.call("get_selected_faces", {}, confirm=False)
+            elif action == "highlight":
+                refs = payload.get("refs")
+                if (not isinstance(refs, list) or not 1 <= len(refs) <= 12 or
+                        any(not isinstance(ref, str) or len(ref) > 80 for ref in refs)):
+                    raise ArgumentError("Select between one and twelve attached faces to highlight")
+                outcome = BRIDGE.call("highlight_selected_faces", {"refs": refs}, confirm=False)
+            else:
+                raise ArgumentError("Unknown face selection action")
+            if not outcome.get("ok"):
+                raise ArgumentError(outcome.get("error", {}).get("message", "Could not read Fusion selection"))
+            result = dict(outcome["result"])
+            result.setdefault("document_id", outcome.get("document_id"))
+            self._send(HTTPStatus.OK, result)
+        except (ArgumentError, BridgeError, json.JSONDecodeError) as exc:
+            self._send(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+
     def _chat(self) -> None:
         session = self._session()
         try:
@@ -727,8 +808,21 @@ class Handler(BaseHTTPRequestHandler):
         if attachments is None:
             attachments = payload.get("image", "")
         blocks = providers.user_blocks(payload.get("text", ""), attachments)
+        try:
+            selected_faces = face_attachments.resolve_attachments(session.bridge, payload.get("faces", []))
+        except (ArgumentError, BridgeError) as exc:
+            self._send(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+            return
+        if selected_faces:
+            face_block = face_attachments.model_block(selected_faces)
+            if getattr(provider, "native_workflows", False):
+                face_block["fusion_faces"] = selected_faces
+            blocks.append(face_block)
         if not blocks:
             self._send(HTTPStatus.BAD_REQUEST, {"error": "empty message"})
+            return
+        if any(b["type"] == "image" for b in blocks) and getattr(provider, "native_workflows", False):
+            self._send(HTTPStatus.BAD_REQUEST, {"error": f"{provider.name} does not use images or a vision fallback. Attach exact faces using Faces instead."})
             return
         if any(b["type"] == "image" for b in blocks) and not provider.supports_images:
             # A text-only worker (DeepSeek V4 Flash, most code models) cannot
@@ -757,9 +851,9 @@ class Handler(BaseHTTPRequestHandler):
         text = payload.get("text", "")
         images = sum(1 for b in blocks if b["type"] == "image")
         session.name_from(text)
-        session.record("user", {"text": text, "images": images})
+        session.record("user", {"text": text, "images": images, "faces": selected_faces})
         if session.recorder is not None:
-            session.recorder.user_message(text, images)
+            session.recorder.user_message(text, images, faces=selected_faces)
 
         # Three consumers of one stream: the browser over SSE, the chat's own
         # replayable log, and the transcript on disk. Teeing here rather than

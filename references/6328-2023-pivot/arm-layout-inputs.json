@@ -1,0 +1,83 @@
+{
+  "link_length": "35 in",
+  "shoulder_height": "16 in",
+  "floor_z": "-3.875 in",
+  "tire_occurrence": "WCP-1702 - Swerve X2i (Tube Mount):1+WCP-1700 Rev1 - Swerve X2 Wheel Module_Default Molded Wheel:1+WCP-1727 Rev1 - Swerve X2 Molded Wheel (High-Grip)_Public:1+WCP-1728 Simplified Model_Default<As Machined>:1",
+  "poses": [
+    {
+      "name": "Stowed",
+      "x_in": 8,
+      "height_in": 16
+    },
+    {
+      "name": "Front high cone clearance",
+      "x_in": 52,
+      "height_in": 60
+    },
+    {
+      "name": "Front high cone release",
+      "x_in": 52,
+      "height_in": 54
+    },
+    {
+      "name": "Front middle cone clearance",
+      "x_in": 35,
+      "height_in": 48
+    },
+    {
+      "name": "Front middle cone release",
+      "x_in": 35,
+      "height_in": 42
+    },
+    {
+      "name": "Front high cube",
+      "x_in": 52.375,
+      "height_in": 42
+    },
+    {
+      "name": "Front middle cube",
+      "x_in": 35,
+      "height_in": 30
+    },
+    {
+      "name": "Front hybrid",
+      "x_in": 20.25,
+      "height_in": 8
+    },
+    {
+      "name": "Rear high cone clearance",
+      "x_in": -52,
+      "height_in": 60
+    },
+    {
+      "name": "Rear high cone release",
+      "x_in": -52,
+      "height_in": 54
+    },
+    {
+      "name": "Rear middle cone clearance",
+      "x_in": -35,
+      "height_in": 48
+    },
+    {
+      "name": "Rear middle cone release",
+      "x_in": -35,
+      "height_in": 42
+    },
+    {
+      "name": "Rear high cube",
+      "x_in": -52.375,
+      "height_in": 42
+    },
+    {
+      "name": "Rear middle cube",
+      "x_in": -35,
+      "height_in": 30
+    },
+    {
+      "name": "Rear hybrid",
+      "x_in": -20.25,
+      "height_in": 8
+    }
+  ]
+}

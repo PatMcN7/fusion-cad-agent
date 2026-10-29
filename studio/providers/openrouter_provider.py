@@ -130,6 +130,9 @@ class OpenRouterProvider(OpenAIProvider):
                 "OPENROUTER_API_KEY is not set. Create a key at "
                 "openrouter.ai/keys and put it in studio/.env")
         super().__init__(model, **kwargs)
+        capability = capabilities(self.model)
+        if capability.get("known"):
+            self.supports_images = bool(capability.get("images"))
         self.last_cost: float | None = None
         self.session_cost = 0.0
 

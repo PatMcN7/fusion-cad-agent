@@ -19,6 +19,7 @@ from execution import operation_id as validate_operation_id
 from errors import ProtocolError
 from errors import ArgumentError
 from tool_contracts import validate, version
+from design_state import DesignState, TOOLS as DESIGN_TOOLS
 
 REQUEST_TIMEOUT = 310
 CONTROL_TOOLS = {
@@ -46,6 +47,7 @@ class Bridge:
         self._document_id = None
         self._submitted = {}
         self.capability_version = None
+        self.design_state = DesignState()
 
     def _request(self, method: str, path: str, payload: dict | None = None) -> dict:
         try:
@@ -86,7 +88,7 @@ class Bridge:
             raise BridgeError(str(response.get("error", {}).get("message", "Registry unavailable")))
         if self._document_id is None:
             self._document_id = response.get("document_id")
-        self._registry = {**response.get("tools", {}), **CONTROL_TOOLS}
+        self._registry = {**response.get("tools", {}), **CONTROL_TOOLS, **DESIGN_TOOLS}
         self.capability_version = version(self._registry)
         return dict(self._registry)
 
@@ -118,6 +120,11 @@ class Bridge:
 
     def call(self, tool: str, arguments: dict, confirm: bool,
              *, operation_id: str | None = None, document_id: str | None = None) -> dict:
+        if tool == "update_design_state":
+            try:
+                return {"ok": True, "result": self.design_state.update(arguments)}
+            except ArgumentError as exc:
+                return {"ok": False, "error": {"code": exc.code, "message": str(exc)}}
         if tool == "operation_status":
             return self.operation_status(arguments.get("operation_id"))
         if tool == "cancel_operation":
@@ -177,6 +184,9 @@ class Bridge:
                     return {"ok": False, "error": {"code": "bad_request",
                             "message": f"Operation arguments must be finite JSON: {exc}"}}
                 self._submitted[identifier] = payload
+        if confirm and tool not in {"write_file", "patch_file", "save_document", "cancel_operation"}:
+            # A failed mutation can leave partial geometry; invalidate conservatively.
+            self.design_state.invalidate(self._document_id)
         try:
             response = self._request("POST", "/v1/call", payload)
         except BridgeError as exc:
@@ -188,7 +198,7 @@ class Bridge:
                               "message": str(exc) + "; poll operation_status before retrying"}}
         if response.get("document_id") and isinstance(response.get("result"), dict):
             response["result"].setdefault("document_id", response["document_id"])
-        if response.get("ok") and not response.get("replayed") and (confirm or tool in {"active_document", "design_summary", "list_documents"}):
+        if response.get("ok") and not response.get("replayed") and (confirm or tool in {"active_document", "design_summary", "list_documents", "get_selected_faces", "resolve_selected_faces"}):
             self._document_id = response.get("document_id", self._document_id)
         if confirm:
             response["operation_id"] = identifier
@@ -201,6 +211,9 @@ class Bridge:
                 self._unresolved = identifier
             elif self._unresolved == identifier:
                 self._unresolved = None
+        if response.get("ok") and isinstance(response.get("result"), dict):
+            response["result"] = self.design_state.observe(tool, arguments,
+                response["result"], response.get("document_id", self._document_id))
         return response
 
     def health(self) -> dict:

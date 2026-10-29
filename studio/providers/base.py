@@ -67,6 +67,13 @@ class ToolResult:
     # an image does not.
     description: str | None = None
 
+    images: list[dict[str, str]] = field(default_factory=list)
+
+    def image_blocks(self) -> list[dict[str, str]]:
+        legacy = ([{"data":self.image_b64,"media_type":self.image_media_type}]
+                  if self.image_b64 else [])
+        return legacy + self.images
+
     def as_text(self, limit: int = 8000) -> str:
         body = truncate(self.payload, limit)
         if not self.description:

@@ -5,259 +5,86 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fusion Studio</title>
 <style>
-:root{
-  --bg:#0f1115; --panel:#161920; --panel-2:#1c2029; --line:#272c37;
-  --ink:#e6e9ef; --dim:#8b93a3; --faint:#5d6472;
-  --accent:#6aa9ff; --ok:#5fcf80; --warn:#e0b050; --bad:#e0655f;
-  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{
-  background:var(--bg);color:var(--ink);
-  font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  display:flex;flex-direction:column;overflow:hidden;
-}
+:root{color-scheme:light;--bg:#fafaf9;--panel:#fff;--panel-2:#f1f2f2;--line:#e3e5e6;--ink:#24282d;--dim:#697079;--faint:#7a818a;--accent:#2165d6;--ok:#338063;--warn:#99651c;--bad:#bf453d;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}body{background:var(--bg);color:var(--ink);font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:1px solid transparent;background:transparent;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:32px;padding:6px 10px;flex-shrink:0}button:hover:not(:disabled){background:#eaedef}button:disabled{opacity:.4;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button.primary{background:var(--accent);color:white;font-weight:600}button.primary:hover:not(:disabled){background:#1957bd}button.secondary{border-color:var(--line);background:var(--panel)}.icon{width:32px;padding:6px}.icon svg,button svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.spacer{flex:1;min-width:0}.hide{display:none!important}.dot{width:6px;height:6px;border-radius:50%;background:#adb3bc;display:inline-block;flex-shrink:0}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+header{display:flex;align-items:center;gap:5px;height:51px;padding:0 12px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--panel)}.brand{font-weight:650;font-size:14px;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}.brand-mark{display:grid;place-items:center;width:23px;height:23px;background:#e9f0fd;color:var(--accent);border-radius:6px}.brand-mark svg{width:16px;height:16px}.context-bar{display:flex;align-items:center;gap:7px;padding:8px 17px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--line);min-height:33px;flex-shrink:0}.context-bar svg{width:13px;height:13px;flex-shrink:0}.context-bar #document-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.context-bar #s-bridge{margin-left:auto;white-space:nowrap}
+main{display:flex;flex:1;min-height:0;min-width:0;position:relative;overflow:hidden}.col{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;width:100%}#conversation{position:relative}#log{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:22px 18px;scrollbar-width:thin;scrollbar-color:#cbd0d5 transparent;display:flex;flex-direction:column;gap:22px;scroll-behavior:auto}#log>*{flex-shrink:0}.msg{width:100%;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}.msg.user{align-self:flex-end;width:auto;max-width:94%;padding:11px 14px;border-radius:13px 13px 3px 13px;background:#eceff2;color:#343a42}.msg.agent{line-height:1.7}.msg.agent:empty{display:none}.msg.user .shots{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}.msg.user img{max-width:100%;max-height:180px;border-radius:6px;display:block}.msg.user .shots img{max-width:140px;max-height:110px}.prose{white-space:normal;overflow-wrap:anywhere}.prose p{margin:0 0 11px}.prose p:last-child{margin-bottom:0}.prose h3{font-size:14px;line-height:1.5;margin:17px 0 7px}.prose ul,.prose ol{margin:6px 0 12px;padding-left:21px}.prose li{padding-left:2px;margin:4px 0}.prose code{font-family:var(--mono);font-size:11px;background:#edf0f3;border-radius:4px;padding:2px 4px}.prose pre{overflow-x:auto;background:#eef1f4;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:11px;line-height:1.6;white-space:pre-wrap}.prose pre code{padding:0;background:none}
+.welcome{margin:auto 0;padding:22px 4px 35px;white-space:normal}.welcome-art{width:68px;height:68px;display:block;color:#8696ad;margin:0 0 22px}.welcome h1{font-size:23px;line-height:1.25;letter-spacing:-.65px;font-weight:600;margin:0 0 10px}.welcome p{color:var(--dim);font-size:13px;margin:0 0 22px;max-width:310px}.starter-list{display:flex;flex-direction:column;gap:8px}.starter{width:100%;justify-content:flex-start;background:white;border:1px solid var(--line);padding:11px 12px;min-width:0;text-align:left;border-radius:9px}.starter svg{color:#6b7d97}.starter span{display:flex;flex-direction:column;min-width:0}.starter b{font-size:12px;font-weight:550}.starter small{font-size:11px;color:var(--dim)}.starter .chevron{margin-left:auto;color:#a1a8b1;width:13px}
+.think,.tool{white-space:normal;margin:9px 0;font-size:12px;min-width:0;color:var(--dim)}.think summary,.tool summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;padding:7px 0;min-width:0}.think summary:before,.tool summary:before{content:'›';font-size:17px;width:10px;flex-shrink:0;color:#8b929c}.think[open] summary:before,.tool[open] summary:before{transform:rotate(90deg)}summary::-webkit-details-marker{display:none}.think .thought-body{white-space:pre-wrap;padding:5px 0 6px 17px;max-height:220px;overflow-y:auto;font-size:12px;line-height:1.65}.tool{border-bottom:1px solid #edf0f2}.tool .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#545e6d}.tool .state{font-size:10px;margin-left:auto;white-space:nowrap}.tool pre{margin:0 0 8px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;background:#f0f2f4;border-radius:6px;padding:10px;font:10px/1.6 var(--mono)}.checks{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}.check{font-size:10px;background:#eef1f2;border-radius:4px;padding:2px 6px}.check.pass{color:var(--ok)}.check.fail{color:var(--bad)}.check.warn{color:var(--warn)}.hint{color:var(--dim);font-size:12px;white-space:normal}.err{border:1px solid #e9c0bd;color:#a23831;background:#fff4f2;border-radius:8px;padding:10px 12px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}#run-state{display:flex;align-items:center;gap:8px;padding:6px 18px 10px;color:var(--dim);font-size:11px}#run-state .dot{background:var(--accent);animation:pulse 1.2s infinite}@keyframes pulse{50%{opacity:.35}}
+#composer{padding:0 12px 11px;flex:0 0 auto;background:var(--bg);min-width:0}.compose-box{background:white;border:1px solid #d6dbe1;border-radius:12px;box-shadow:0 2px 4px #19263806;overflow:hidden}.compose-box:focus-within{border-color:#8babd7;box-shadow:0 0 0 2px #2165d60a}#text{display:block;resize:none;border:0;background:transparent;width:100%;min-height:70px;max-height:130px;padding:12px 13px 6px;line-height:1.55;outline:none;border-radius:12px;font-size:13px}#text::placeholder{color:#9299a3}.compose-actions{display:flex;align-items:center;padding:4px 7px 7px;gap:3px}#visual-actions{display:flex;gap:2px;align-items:center;min-width:0}#visual-actions button{padding:5px 7px;color:#687689;font-size:11px;min-height:30px}#send{width:31px;height:31px;padding:6px;min-height:31px;border-radius:8px}#stop{border:1px solid #e7cbc8;color:var(--bad);min-height:30px;font-size:11px}#resume-drawing{display:block;margin:0 0 7px;font-size:11px;color:var(--accent);padding:3px 6px;min-height:25px}#attached{display:none;gap:8px;overflow-x:auto;padding:11px 11px 0;max-height:95px}#attached.on{display:flex}.thumb{position:relative;flex:0 0 62px;padding-top:3px}.thumb img{width:62px;height:55px;border-radius:6px;border:1px solid var(--line);object-fit:cover;cursor:pointer}.thumb .n{position:absolute;bottom:6px;left:4px;font:9px var(--mono);background:#252d38c9;color:white;padding:2px 4px;border-radius:3px}.thumb button{position:absolute;top:0;right:-4px;background:white;border:1px solid var(--line);border-radius:50%;width:17px;height:17px;min-height:0;padding:0;font-size:12px}.composer-meta{display:flex;align-items:center;gap:7px;margin:8px 3px 0;min-height:17px;font-size:10px;color:var(--faint)}#model-short{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}#usage{margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%;font-size:10px}
+.drawer{position:absolute;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;min-height:0;overflow:hidden}.drawer-head{height:52px;padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-shrink:0}.drawer-head h2{font-size:14px;font-weight:600;margin:0}.drawer-content{overflow:auto;padding:18px;min-height:0}.drawer p{font-size:12px;color:var(--dim);margin:0 0 20px}.field{display:flex;flex-direction:column;gap:6px;margin-bottom:17px;font-size:12px;font-weight:550}.field select,.field input{font-size:12px;font-weight:400;width:100%;min-width:0;max-width:100%;height:36px;border:1px solid #d8dde3;background:white;border-radius:7px;padding:6px 8px}.status-line{font-size:11px;color:var(--dim);display:flex;align-items:flex-start;gap:7px;overflow-wrap:anywhere;margin:10px 0 22px}.status-line .dot{margin-top:6px}#rail{display:none}main.show-rail #rail{display:flex}#chats{flex:1;overflow:auto;padding:10px}.chat{position:relative;padding:12px 34px 12px 12px;cursor:pointer;border-radius:8px;border:1px solid transparent;margin:3px 0;min-width:0}.chat:hover{background:#eef1f4}.chat.on{border-color:#dce3eb;background:#eef2f7}.chat .t{font-size:12px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chat .m{display:flex;gap:8px;font-size:10px;color:var(--dim);margin-top:4px}.chat .x{position:absolute;top:10px;right:6px;padding:0;width:23px;min-height:24px;color:var(--dim)}.chat .live{width:6px;height:6px;align-self:center;background:var(--accent);border-radius:50%}
+#workbench{display:none}body.editing #workbench{display:flex}body.editing #conversation{display:none}.editor-head{padding:10px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-bottom:1px solid var(--line);background:white}#drawing-label{font-weight:550;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-capture{display:flex;align-items:center;gap:7px;padding:7px 13px;font-size:11px;color:var(--dim);flex-shrink:0}#view{font-size:11px;max-width:140px;min-width:0;background:transparent;border:0;color:var(--dim);padding:3px}#grab{font-size:11px;min-height:27px;padding:3px 7px}.drawing-toolbar{flex-shrink:0;background:white;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 10px;display:flex;align-items:center;gap:5px;overflow-x:auto}.drawing-toolbar button{width:31px;min-height:31px;padding:5px;border-radius:6px}.drawing-toolbar button[aria-pressed=true]{background:#e9f0fd;color:var(--accent)}.toolbar-divider{height:20px;border-left:1px solid var(--line);margin:0 3px}#ink-colour{width:26px;height:26px;padding:2px;border:1px solid var(--line);border-radius:50%;background:white;flex-shrink:0;cursor:pointer}#ink-colour::-webkit-color-swatch-wrapper{padding:2px}#ink-colour::-webkit-color-swatch{border:0;border-radius:50%}#label-text{width:calc(100% - 24px);margin:8px 12px;padding:8px 10px;border:1px solid #cdd6e1;border-radius:7px;background:white;font-size:12px;flex-shrink:0}#stage{flex:1;min-height:0;position:relative;overflow:hidden;background:#e9ecef;background-image:radial-gradient(#cbd1d8 .7px,transparent .7px);background-size:12px 12px}#stage img{position:absolute;display:block;box-shadow:0 2px 9px #1a2b4220;background:white}#canvas{position:absolute;cursor:crosshair;touch-action:none}#stage-empty{position:absolute;inset:0;display:grid;place-items:center;padding:20px;color:var(--dim);font-size:12px;text-align:center}#editor-error{padding:8px 12px;color:var(--bad);font-size:11px;flex-shrink:0;background:#fff4f2}#editor-actions{padding:10px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0;background:white;border-top:1px solid var(--line)}#editor-actions button{font-size:12px}.editor-note{font-size:10px;color:var(--dim);padding:6px 13px;background:white;flex-shrink:0}#draw,#drawtools,#draw-tool{display:none!important}
+@media(max-width:340px){header{padding:0 8px}#log{padding:17px 13px}#composer{padding:0 8px 9px}#visual-actions button{padding:5px}.action-word{display:none}.welcome h1{font-size:21px}.context-bar{padding:7px 12px}}
+@media(max-height:540px){.welcome{padding:7px 0 12px}.welcome-art{display:none}.welcome h1{font-size:20px}.welcome p{margin-bottom:14px}.starter{padding:8px 10px}.starter small{display:none}#text{min-height:54px;max-height:90px}#log{padding-top:14px;padding-bottom:14px}}
+@media(min-width:750px){#log{padding-left:max(22px,calc((100% - 680px)/2));padding-right:max(22px,calc((100% - 680px)/2))}#composer{width:min(100%,720px);align-self:center}.drawer-content,#chats{width:min(100%,720px);align-self:center}.welcome{max-width:420px;align-self:center;width:100%}}
 
-/* ---- top bar ---- */
-header{
-  display:flex;align-items:center;gap:14px;padding:9px 14px;
-  border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto;
-}
-.brand{font-weight:650;letter-spacing:.2px}
-.brand span{color:var(--faint);font-weight:400}
-.chip{
-  display:inline-flex;align-items:center;gap:6px;padding:3px 9px;
-  border:1px solid var(--line);border-radius:20px;
-  font:11px/1 var(--mono);color:var(--dim);white-space:nowrap;
-}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:0 0 auto}
-.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
-header .spacer{flex:1}
-select,input,button{
-  font:inherit;color:var(--ink);background:var(--panel-2);
-  border:1px solid var(--line);border-radius:7px;padding:5px 9px;
-}
-select,input{font-size:12px}
-button{cursor:pointer}
-button:hover:not(:disabled){border-color:var(--faint)}
-button:disabled{opacity:.45;cursor:default}
-button.primary{background:var(--accent);border-color:var(--accent);color:#0b1220;font-weight:600}
-button#stop{background:var(--panel-2);border-color:var(--bad);color:var(--bad);font-weight:600}
-button#stop:hover{background:var(--bad);color:#160c0c}
-
-/* ---- layout ---- */
-main{flex:1;display:grid;grid-template-columns:230px minmax(400px,1fr) minmax(400px,1fr);min-height:0}
-main.no-rail{grid-template-columns:0 minmax(400px,1fr) minmax(400px,1fr)}
-@media(max-width:1100px){main{grid-template-columns:0 1fr 1fr}}
-@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}#rail{display:none}}
-
-/* ---- chat rail ---- */
-#rail{
-  display:flex;flex-direction:column;min-height:0;overflow:hidden;
-  border-right:1px solid var(--line);background:var(--panel);
-}
-main.no-rail #rail{display:none}
-#rail-head{
-  display:flex;align-items:center;gap:8px;padding:9px 11px;
-  border-bottom:1px solid var(--line);font:11px/1 var(--mono);
-  color:var(--faint);text-transform:uppercase;letter-spacing:.9px;
-}
-#rail-head .spacer{flex:1}
-#newchat{padding:3px 9px;font-size:12px;line-height:1.3}
-#chats{flex:1;overflow:auto;padding:7px}
-.chat{
-  position:relative;padding:8px 26px 8px 10px;border-radius:8px;cursor:pointer;
-  border:1px solid transparent;margin-bottom:3px;
-}
-.chat:hover{background:var(--panel-2)}
-.chat.on{background:var(--panel-2);border-color:var(--line)}
-.chat .t{font-size:13px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chat.on .t{color:var(--ink)}
-.chat .m{font:10px/1.4 var(--mono);color:var(--faint);margin-top:2px;display:flex;gap:7px}
-.chat .x{
-  position:absolute;right:5px;top:6px;width:19px;height:19px;padding:0;
-  border:0;background:transparent;color:var(--faint);opacity:0;font-size:14px;
-  border-radius:5px;line-height:1;
-}
-.chat:hover .x{opacity:1}
-.chat .x:hover{background:var(--line);color:var(--bad)}
-.chat .live{width:6px;height:6px;border-radius:50%;background:var(--accent);
-  align-self:center;animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.25}}
-.col{display:flex;flex-direction:column;min-height:0;min-width:0}
-.col+.col{border-left:1px solid var(--line)}
-.col-head{
-  display:flex;align-items:center;gap:8px;padding:7px 12px;
-  border-bottom:1px solid var(--line);background:var(--panel);
-  font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.7px;
-}
-.col-head .spacer{flex:1}
-
-/* ---- transcript ---- */
-#log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
-.msg{max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
-.msg.user{
-  align-self:flex-end;background:var(--panel-2);border:1px solid var(--line);
-  border-radius:12px 12px 3px 12px;padding:9px 13px;
-}
-.msg.user img{max-width:280px;border-radius:7px;display:block;margin-bottom:7px}
-.msg.agent{align-self:flex-start}
-.think{
-  border-left:2px solid var(--line);padding:2px 0 2px 11px;margin:2px 0 8px;
-  color:var(--faint);font-size:12.5px;white-space:pre-wrap;
-  max-height:130px;overflow-y:auto;
-}
-.think b{display:block;font:10px/1.6 var(--mono);text-transform:uppercase;letter-spacing:.7px}
-.tool{
-  border:1px solid var(--line);border-radius:9px;background:var(--panel);
-  margin:8px 0;font-size:12.5px;overflow:hidden;
-}
-.tool summary{
-  cursor:pointer;padding:7px 11px;display:flex;align-items:center;gap:8px;
-  font-family:var(--mono);font-size:12px;list-style:none;
-}
-.tool summary::-webkit-details-marker{display:none}
-.tool .name{color:var(--accent)}
-.tool.mut .name{color:var(--warn)}
-.tool .state{margin-left:auto;font-size:11px;color:var(--dim)}
-.tool pre{
-  margin:0;padding:9px 11px;border-top:1px solid var(--line);
-  background:#0c0e13;font:11.5px/1.5 var(--mono);color:var(--dim);
-  max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;
-}
-.checks{padding:7px 11px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:5px}
-.check{font:10.5px/1.5 var(--mono);padding:2px 7px;border-radius:5px;background:var(--panel-2);color:var(--dim)}
-.check.pass{color:var(--ok)} .check.fail{color:var(--bad)} .check.warn{color:var(--warn)}
-.err{border:1px solid var(--bad);border-radius:9px;padding:9px 12px;color:var(--bad);font-size:13px}
-.hint{color:var(--faint);font-size:12.5px;text-align:center;padding:26px 20px;line-height:1.7}
-.hint code{font-family:var(--mono);color:var(--dim);font-size:11.5px}
-
-/* ---- composer ---- */
-#composer{border-top:1px solid var(--line);padding:10px 12px;background:var(--panel);flex:0 0 auto}
-#attached{display:none;margin-bottom:8px;gap:8px;flex-wrap:wrap}
-#attached.on{display:flex}
-.thumb{position:relative}
-.thumb img{
-  max-height:84px;border-radius:7px;border:1px solid var(--line);display:block;
-  cursor:pointer;
-}
-.thumb img:hover{border-color:var(--accent)}
-.thumb .n{
-  position:absolute;left:4px;bottom:4px;font:10px/1.4 var(--mono);
-  background:rgba(0,0,0,.66);color:var(--ink);padding:1px 5px;border-radius:4px;
-}
-.thumb button{
-  position:absolute;top:-7px;right:-7px;width:21px;height:21px;padding:0;
-  border-radius:50%;font-size:12px;line-height:1;background:var(--panel-2);
-}
-.msg.user .shots{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px}
-.msg.user .shots img{max-width:150px;margin:0}
-.row{display:flex;gap:8px;align-items:flex-end}
-#text{
-  flex:1;resize:none;min-height:42px;max-height:180px;padding:10px 12px;
-  border-radius:9px;border:1px solid var(--line);background:var(--panel-2);
-  color:var(--ink);font:inherit;
-}
-#text:focus{outline:none;border-color:var(--faint)}
-
-/* ---- viewport ---- */
-#stage{flex:1;position:relative;overflow:hidden;background:#0a0c10;
-  display:flex;align-items:center;justify-content:center}
-#stage img{max-width:100%;max-height:100%;display:block}
-#canvas{position:absolute;cursor:crosshair;touch-action:none}
-#stage .empty{color:var(--faint);font-size:13px;text-align:center;padding:24px;line-height:1.7}
-.tools-row{display:flex;align-items:center;gap:7px;padding:7px 12px;
-  border-top:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-.swatch{width:19px;height:19px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
-.swatch.on{border-color:var(--ink)}
-.hide{display:none!important}
+#run-state{display:block;flex:0 0 auto;margin:9px 12px;padding:10px 12px;border:1px solid #dbe5f4;border-radius:9px;background:#f0f5fc;color:#425571;font-size:11px}.activity-heading{display:flex;align-items:center;gap:8px;min-width:0}#run-label{font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#run-time{margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--dim)}#run-meta{margin:3px 0 0 14px;color:var(--dim);font-size:10px}#run-warning{margin-top:7px;font-size:11px;line-height:1.5;color:#805513;overflow-wrap:anywhere}#run-state.attention{background:#fff9ec;border-color:#e9d8ae}#run-state.inactive .dot{animation:none;background:#8895a5}
+#design-state{flex:0 0 auto;margin:0 12px 8px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-size:11px;max-height:210px;overflow:auto}#design-state summary{cursor:pointer;font-weight:600;overflow-wrap:anywhere}#design-entries{margin-top:7px}.design-entry{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.design-status{color:var(--dim);font-size:10px}.design-status.attention{color:#805513}#design-next{font-weight:400;color:var(--dim)}
+@media(max-height:600px){#design-state{max-height:90px}#text{max-height:80px}#log{padding-top:10px;padding-bottom:10px}}
+#face-attached{padding:8px 10px 0;max-height:150px;overflow:auto}.face-chip{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:3px 5px;padding:6px 0;border-bottom:1px solid var(--line)}.face-title{min-width:0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.face-chip button{min-height:25px;padding:2px 5px;font-size:10px;color:var(--dim)}.face-label{grid-column:1 / -1;min-width:0;width:100%;border:0;background:#f4f6f8;border-radius:4px;padding:4px 6px;font-size:11px}#face-hint{margin:7px 11px 0;font-size:11px;color:var(--dim)}.sent-faces{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 7px}.sent-face{font-size:10px;padding:3px 6px;min-height:24px;border:1px solid #c8d3df;background:#f5f8fc;max-width:100%;white-space:normal;text-align:left}#composer.with-faces{display:flex;flex-direction:column;flex:0 1 auto;min-height:160px;max-height:60vh;overflow:hidden}#composer.with-faces .compose-box{display:flex;flex-direction:column;min-height:0;flex:1}#composer.with-faces #face-attached{flex:0 1 auto;min-height:0}#composer.with-faces #attached{flex:0 1 auto;min-height:0}#composer.with-faces #text,#composer.with-faces .compose-actions,#composer.with-faces .composer-meta{flex:0 0 auto}#face-hint{max-height:44px;overflow:auto;flex:0 1 auto}
+.face-request{padding:12px;border:1px solid #aabed8;background:#f3f7fd;border-radius:8px;white-space:normal}.face-request ol{padding-left:22px;margin:8px 0}.face-request button{margin-top:8px}
 </style>
-</head>
-<body>
-
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 9 5v8l-9 5-9-5V8l9-5Zm0 9 9-4M12 12 3 8m9 4v9"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--panel)"/><circle cx="15" cy="17" r="3" fill="var(--panel)"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M8 6 9.5 3h5L16 6h4v14H4V6Z"/><circle cx="12" cy="12.5" r="3.5"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="m15 4 5 5L9 20l-6 1 1-6L15 4Zm-8 8 5 5M14 5l5 5"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 16 5-5 5 5 3-3 5 5"/><circle cx="15.5" cy="7.5" r="1.5"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 19 19 5M7 5h12v12"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/></symbol>
+<symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V4h16v3M12 4v16M8 20h8"/></symbol>
+<symbol id="i-erase" viewBox="0 0 24 24"><path d="m14 3 7 7-10 11H6l-5-5L14 3Zm-8 8 7 7M11 21h10"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M4 10h10a6 6 0 0 1 0 12M4 10l5-5M4 10l5 5" transform="translate(0 -3)"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+</defs></svg>
 <header>
-  <button id="rail-toggle" title="Show or hide chats" style="padding:5px 8px">☰</button>
-  <div class="brand">Fusion&nbsp;Studio <span>/ cad agent</span></div>
-  <div class="chip"><span class="dot" id="d-bridge"></span><span id="s-bridge">bridge…</span></div>
-  <div class="chip"><span class="dot" id="d-model"></span><span id="s-model">model…</span></div>
-  <div class="spacer"></div>
-  <select id="preset" title="Model"></select>
-  <input id="baseurl" class="hide" placeholder="http://localhost:11434/v1" size="24" title="Base URL">
-  <select id="effort" title="Effort">
-    <option value="low" selected>low</option><option value="medium">medium</option>
-    <option value="high">high</option><option value="xhigh">xhigh</option>
-  </select>
-  <button id="reset" title="Clear this conversation">Reset</button>
+<button id="rail-toggle" class="icon" title="Chat history" aria-label="Chat history"><svg><use href="#i-menu"/></svg></button>
+<div class="brand"><span class="brand-mark"><svg fill="none" stroke="currentColor" stroke-width="1.5"><use href="#i-cube"/></svg></span>Studio</div>
+<div class="spacer"></div>
+<button id="newchat-top" class="icon" title="New chat" aria-label="New chat"><svg><use href="#i-plus"/></svg></button>
+<button id="settings-toggle" class="icon" title="Settings" aria-label="Settings" aria-expanded="false"><svg><use href="#i-settings"/></svg></button>
 </header>
-
+<div class="context-bar"><svg fill="none" stroke="currentColor" stroke-width="1.5"><use href="#i-cube"/></svg><span id="document-name">Connecting to Fusion…</span><span class="dot" id="d-bridge"></span><span id="s-bridge">Connecting</span></div>
+<div id="run-state" class="hide" role="status"><div class="activity-heading"><span class="dot"></span><strong id="run-label">Waiting for model</strong><span id="run-time">0:00</span></div><div id="run-meta"></div><div id="run-warning" class="hide"></div></div>
+<details id="design-state" class="hide"><summary>Design <span id="design-next"></span></summary><div id="design-entries"></div><button id="correct-design" class="secondary">Correct design intent</button></details>
 <main>
-  <aside id="rail">
-    <div id="rail-head">Chats<div class="spacer"></div><button id="newchat">+ New</button></div>
-    <div id="chats"></div>
-  </aside>
-
-  <section class="col">
-    <div class="col-head">Conversation<div class="spacer"></div><span id="usage"></span></div>
-    <div id="log">
-      <div class="hint" id="welcome">
-        Describe the part you want, or capture the viewport and draw on it.<br><br>
-        <code>Make a 12 × 4 × 2 in isogrid bar, skeletonized</code><br>
-        <code>The pocket walls are too thin — thicken the ribs</code>
-      </div>
-    </div>
-    <div id="composer">
-      <div id="attached"></div>
-      <div class="row">
-        <textarea id="text" rows="1" placeholder="Describe the part, or the change you want…"></textarea>
-        <button id="send" class="primary">Send</button>
-        <button id="stop" class="hide" title="Stop generating (Esc)">■ Stop</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="col">
-    <div class="col-head">
-      Viewport<div class="spacer"></div>
-      <select id="view" title="Which view to capture">
-        <option value="current" selected>current view</option>
-        <option value="iso">iso</option><option value="top">top</option>
-        <option value="front">front</option><option value="right">right</option>
-        <option value="bottom">bottom</option><option value="left">left</option>
-        <option value="back">back</option>
-      </select>
-      <button id="grab">Capture</button>
-    </div>
-    <div id="stage">
-      <div class="empty" id="stage-empty">
-        No capture yet.<br>Press <b>Capture</b> to pull the current Fusion viewport.
-      </div>
-      <img id="shot" class="hide" alt="viewport">
-      <canvas id="canvas" class="hide"></canvas>
-    </div>
-    <div class="tools-row">
-      <button id="draw">✏️ Markup</button>
-      <span id="drawtools" class="hide" style="display:flex;gap:7px;align-items:center">
-        <button class="swatch on" data-c="#ff4d4d" style="background:#ff4d4d"></button>
-        <button class="swatch" data-c="#6aa9ff" style="background:#6aa9ff"></button>
-        <button class="swatch" data-c="#5fcf80" style="background:#5fcf80"></button>
-        <button class="swatch" data-c="#ffd23f" style="background:#ffd23f"></button>
-        <button id="undo">Undo</button><button id="clear">Clear</button>
-        <button id="attach" class="primary">Attach ↑</button>
-      </span>
-    </div>
-  </section>
+<aside id="rail" class="drawer"><div class="drawer-head"><h2>Chats</h2><div class="spacer"></div><button id="newchat" class="secondary">New chat</button><button id="history-close" class="icon" aria-label="Close history"><svg><use href="#i-close"/></svg></button></div><div id="chats"></div></aside>
+<section id="settings" class="drawer hide" aria-label="Settings"><div class="drawer-head"><h2>Settings</h2><div class="spacer"></div><button id="settings-close" class="icon" aria-label="Close settings"><svg><use href="#i-close"/></svg></button></div><div class="drawer-content"><p>Choose the model for this conversation.</p><label class="field">Model<select id="preset" title="Model"></select></label><label class="field">Reasoning effort<select id="effort" title="Effort"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="xhigh">Extra high</option></select></label><input id="baseurl" class="hide" placeholder="http://localhost:11434/v1" aria-label="Model server URL"><div class="status-line"><span class="dot" id="d-model"></span><span id="s-model">Checking model…</span></div><p>Changing the model or effort clears this chat’s model context.</p><button id="reset" class="secondary">Clear conversation</button></div></section>
+<section class="col" id="conversation"><div id="log"></div><div id="composer"><button id="resume-drawing" class="hide"><svg><use href="#i-pen"/></svg>Resume drawing</button><div class="compose-box"><div id="attached"></div><div id="face-attached" class="hide" aria-label="Attached faces"></div><div id="face-hint" class="hide" role="status"></div><textarea id="text" rows="2" placeholder="Describe your design or a change…" aria-label="Message"></textarea><div class="compose-actions"><div id="visual-actions"><button id="capture-markup" title="Capture the current Fusion view and mark it up"><svg><use href="#i-camera"/></svg><span class="action-word">Capture</span></button><button id="scratchpad" title="Draw on a blank scratchpad"><svg><use href="#i-pen"/></svg><span class="action-word">Sketch</span></button><button id="attach-faces" title="Attach faces selected in Fusion" aria-label="Attach selected faces"><svg><use href="#i-cube"/></svg><span class="action-word">Faces</span></button><button id="upload" class="icon" title="Add a reference image" aria-label="Add a reference image"><svg><use href="#i-image"/></svg></button></div><input id="image-file" type="file" accept="image/*" class="hide"><div class="spacer"></div><button id="send" class="primary" title="Send message" aria-label="Send message"><svg><use href="#i-send"/></svg></button><button id="stop" class="hide">■ Stop</button></div></div><div class="composer-meta"><span class="dot" id="model-dot"></span><span id="model-short">Connecting…</span><span id="usage"></span></div></div></section>
+<section class="col" id="workbench"><div class="editor-head"><button id="back-chat" class="icon" title="Back to chat; keep this drawing" aria-label="Back to chat"><svg><use href="#i-back"/></svg></button><span id="drawing-label">Drawing</span><span class="spacer"></span><span style="color:var(--dim);font-size:10px">Draft</span></div><div class="editor-capture"><select id="view" title="View to capture"><option value="current">Current view</option><option value="iso">Isometric</option><option value="top">Top</option><option value="front">Front</option><option value="right">Right</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="back">Back</option></select><span class="spacer"></span><button id="grab"><svg><use href="#i-camera"/></svg>Recapture</button></div>
+<div class="drawing-toolbar" role="toolbar" aria-label="Drawing tools"><button data-tool="pen" title="Pen" aria-label="Pen" aria-pressed="true"><svg><use href="#i-pen"/></svg></button><button data-tool="arrow" title="Arrow" aria-label="Arrow" aria-pressed="false"><svg><use href="#i-arrow"/></svg></button><button data-tool="rect" title="Rectangle" aria-label="Rectangle" aria-pressed="false"><svg><use href="#i-box"/></svg></button><button data-tool="text" title="Label or dimension" aria-label="Label or dimension" aria-pressed="false"><svg><use href="#i-text"/></svg></button><button data-tool="erase" title="Eraser" aria-label="Eraser" aria-pressed="false"><svg><use href="#i-erase"/></svg></button><span class="toolbar-divider"></span><input type="color" id="ink-colour" value="#e35343" title="Ink color" aria-label="Ink color"><span class="spacer"></span><button id="undo" title="Undo last stroke" aria-label="Undo last stroke"><svg><use href="#i-undo"/></svg></button></div>
+<button id="draw" class="hide"></button><span id="drawtools" class="hide"></span><select id="draw-tool" class="hide"><option value="pen">Pen</option><option value="arrow">Arrow</option><option value="rect">Rectangle</option><option value="text">Text</option><option value="erase">Eraser</option></select><input id="label-text" class="hide" placeholder="Type a label, then click the canvas" aria-label="Text to place"><div id="stage"><div id="stage-empty">Capture a view or start a sketch.</div><img id="shot" class="hide" alt="Drawing background"><canvas id="canvas" class="hide" aria-label="Drawing canvas"></canvas></div><div class="editor-note">Draw what you mean. Add dimensions where they matter.</div><div id="editor-error" class="hide" role="alert"></div><div id="editor-actions"><button id="clear">Clear marks</button><span class="spacer"></span><button id="attach" class="primary" disabled>Attach to chat<svg><use href="#i-plus"/></svg></button></div></section>
 </main>
 
 <script>
 const $ = s => document.querySelector(s);
 const log = $('#log');
-let PRESETS = {}, CHAT = null, drawing = false, strokes = [], stroke = null, colour = '#ff4d4d';
+let PRESETS = {}, CHAT = null, drawing = false, strokes = [], stroke = null, colour = '#e35343';
 // Each entry is a flattened capture+markup data URL. Order is what the model
 // sees, and what the "Image N of M" labels refer to.
 let attachments = [];
+let faceAttachments = [];
+let faceSequence = 0;
 
 /* ---------------- bootstrap ---------------- */
+function selectCurrentModel(provider, model, baseUrl){
+  if (!provider || !model) return;
+  const select=$('#preset');
+  let option=Array.from(select.options).find(o=>o.dataset.provider===provider &&
+    (o.value===model || (['codex','hybrid','hybrid_dev'].includes(provider) && o.value.split(':').slice(1).join(':')===model)));
+  if (!option) {
+    option=document.createElement('option'); option.value=model;
+    option.textContent=provider+' · '+model; option.dataset.provider=provider;
+    option.dataset.baseUrl=baseUrl||''; select.appendChild(option);
+  }
+  option.selected=true;
+}
 async function boot(){
   const r = await fetch('/api/bootstrap').then(r => r.json());
   PRESETS = r.presets || {};
@@ -278,19 +105,47 @@ async function boot(){
     }
     sel.appendChild(g);
   }
-  const cur = (r.current || {}).model;
-  if (cur && sel.querySelector(`option[value="${CSS.escape(cur)}"]`)) sel.value = cur;
+  selectCurrentModel(r.current?.provider, r.current?.model, r.current?.base_url);
   if ((r.current || {}).effort) $('#effort').value = r.current.effort;
   syncBaseUrl();
 
   setStatus('#d-bridge', '#s-bridge', r.bridge === 'connected',
-    r.bridge === 'connected' ? `${(r.tools||[]).length} tools` : 'bridge down');
+    r.bridge === 'connected' ? 'Connected' : 'Offline');
   setStatus('#d-model', '#s-model', r.model_ok, r.model_status || 'no model');
 
+  $('#document-name').textContent = r.fusion?.active_document?.name || 'No open document';
   // Adopt whichever chat the server considers current, then paint the rail.
-  CHAT = (r.session || {}).id || null;
+  CHAT = new URLSearchParams(location.search).get('session') || (r.session || {}).id || null;
   renderChats(r.sessions || []);
   if (CHAT) await openChat(CHAT); else await newChat();
+  const retrySource = new URLSearchParams(location.search).get('retry_session');
+  if (retrySource) {
+    const db = await draftDB;
+    const stored = db ? await new Promise(resolve => {
+      const request = db.transaction('drafts').objectStore('drafts').getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
+    }) : [];
+    const previous = stored.filter(item => item.chat === retrySource && item.sent)
+      .sort((a,b) => b.sent-a.sent)[0];
+    if (previous) {
+      $('#text').value = previous.text;
+      attachments = previous.images.slice(); faceAttachments=previous.faces||[]; renderAttachments(); renderFaceAttachments(); saveDraft();
+      history.replaceState(null,'',location.pathname+'?embedded=1&session='+CHAT);
+    } else addError('The previous submitted prompt was not found in local history. Reattach the request before sending.');
+  }
+  // Local draft handoff: populate the composer without submitting to a model.
+  if (location.hash.startsWith('#draft=')) {
+    const draft = JSON.parse(decodeURIComponent(location.hash.slice(7)));
+    if (typeof draft.text === 'string' && Array.isArray(draft.images) &&
+        draft.images.length <= 8 && draft.images.every(src => typeof src === 'string' && src.startsWith('data:image/'))) {
+      $('#text').value = draft.text;
+      attachments = draft.images.slice(); renderAttachments();
+      saveDraft();
+      history.replaceState(null,'',location.pathname+location.search);
+      $('#text').focus();
+    }
+  }
 
   if (r.bridge !== 'connected') {
     addError('Fusion bridge unreachable. Run the FusionCadAgent add-in in Fusion, then reload.');
@@ -299,6 +154,11 @@ async function boot(){
 function setStatus(dot, label, ok, text){
   $(dot).className = 'dot ' + (ok ? 'ok' : 'bad');
   $(label).textContent = text;
+  if (dot === '#d-model') {
+    $('#model-dot').className = 'dot ' + (ok ? 'ok' : 'bad');
+    $('#model-short').textContent = $('#preset').selectedOptions[0]?.textContent || text;
+    $('#model-short').title = text;
+  }
 }
 function syncBaseUrl(){
   const o = $('#preset').selectedOptions[0];
@@ -336,6 +196,40 @@ function scroll(){ log.scrollTop = log.scrollHeight; }
 function addError(m){ el('err', log, m); scroll(); }
 function note(m){ el('hint', log, m); scroll(); }
 
+function welcome(){
+  const host = el('welcome',log); host.id = 'welcome';
+  host.innerHTML = `<svg class="welcome-art" viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M7 20 36 4l29 16v32L36 68 7 52V20Z" stroke-dasharray="3 3" opacity=".5"/><path d="m19 26 17-10 17 10v20L36 56 19 46V26Zm0 0 17 10 17-10M36 36v20"/><path d="M7 52 36 36 65 52M36 4v12" opacity=".3"/></svg><h1>What are we making?</h1><p>Describe it, sketch it, or show the change directly on your model.</p><div class="starter-list"></div>`;
+  for (const [icon,title,description,target] of [
+    ['camera','Mark up this view','Capture Fusion and point to the change.','capture-markup'],
+    ['pen','Sketch an idea','Start with a blank drawing.','scratchpad'],
+    ['image','Add a reference','Bring a drawing or image into the chat.','upload']]) {
+    const b = document.createElement('button'); b.className = 'starter';
+    b.innerHTML = `<svg><use href="#i-${icon}"/></svg><span><b>${title}</b><small>${description}</small></span><svg class="chevron"><use href="#i-next"/></svg>`;
+    b.onclick = () => $('#'+target).click(); host.querySelector('.starter-list').appendChild(b);
+  }
+}
+// Small, escaped Markdown renderer: no remote scripts, HTML, or dependencies.
+function prose(text){
+  const escape = value => value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const inline = value => escape(value).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  return text.split(/(```[\s\S]*?(?:```|$))/g).map(part => {
+    if (part.startsWith('```')) return '<pre><code>'+escape(part.replace(/^```[^\n]*\n?/, '').replace(/```$/, ''))+'</code></pre>';
+    return part.split(/\n\s*\n/).filter(Boolean).map(block => {
+      const lines = block.split('\n');
+      if (lines.every(l=>/^\s*[-*] /.test(l))) return '<ul>'+lines.map(l=>'<li>'+inline(l.replace(/^\s*[-*] /,''))+'</li>').join('')+'</ul>';
+      if (lines.every(l=>/^\s*\d+\. /.test(l))) return '<ol>'+lines.map(l=>'<li>'+inline(l.replace(/^\s*\d+\. /,''))+'</li>').join('')+'</ol>';
+      return lines.map(l=>/^#{1,6} /.test(l)?'<h3>'+inline(l.replace(/^#{1,6} /,''))+'</h3>':'<p>'+inline(l)+'</p>').join('');
+    }).join('');
+  }).join('');
+}
+function thought(agent, label){
+  const box = document.createElement('details'); box.className = 'think';
+  const summary = document.createElement('summary'); summary.textContent = label;
+  box.appendChild(summary); const body = el('thought-body',box); agent.appendChild(box);
+  return body;
+}
+
+
 function renderChecks(payload, host){
   const reports = [].concat(payload && payload.verification || []).filter(Boolean);
   const blocks = reports.length ? reports : (payload && payload.label ? [payload] : []);
@@ -358,28 +252,31 @@ function renderChecks(payload, host){
 // separate, reopening a chat would show something subtly different from what
 // you watched happen -- which is the bug that makes history untrustworthy.
 function renderEvent(agent, ev, d, ctx){
+  if (ev === 'design_state') { paintDesignState(d); return agent; }
   if (ev === 'user') {
     const bubble = el('msg user', log);
+    if (d.faces?.length) renderSentFaces(bubble,d.faces);
     if (d.images) el('hint', bubble, `${d.images} image${d.images>1?'s':''} attached`);
     if (d.text) bubble.appendChild(document.createTextNode(d.text));
     ctx.agent = null;
     return null;
   }
-  if (!agent) { agent = el('msg agent', log); ctx.textNode = null; }
+  if (!agent) { agent = el('msg agent', log); ctx.textNode = null; ctx.thinkBox = null; }
 
   if (ev === 'thinking_start') {
-    ctx.thinkBox = el('think', agent); ctx.thinkBox.innerHTML = '<b>thinking</b>';
+    ctx.thinkBox = thought(agent, 'Reasoning');
   } else if (ev === 'thinking') {
-    if (!ctx.thinkBox) { ctx.thinkBox = el('think', agent); ctx.thinkBox.innerHTML = '<b>thinking</b>'; }
+    if (!ctx.thinkBox) { ctx.thinkBox = thought(agent, 'Reasoning'); }
     ctx.thinkBox.appendChild(document.createTextNode(d.text)); ctx.thinkBox.scrollTop = 1e6;
   } else if (ev === 'text') {
-    if (!ctx.textNode) { ctx.textNode = document.createElement('span'); agent.appendChild(ctx.textNode); }
-    ctx.textNode.textContent += d.text;
+    if (!ctx.textNode) { ctx.textNode = el('prose',agent); ctx.proseText = ''; }
+    ctx.proseText += d.text; ctx.textNode.innerHTML = prose(ctx.proseText);
   } else if (ev === 'tool_start') {
     const box = document.createElement('details');
     box.className = 'tool' + (d.mutating ? ' mut' : '');
-    box.innerHTML = `<summary><span class="name">${d.name}</span>
-      <span class="state">running…</span></summary>`;
+    box.innerHTML = '<summary><span class="name"></span><span class="state">Running…</span></summary>';
+    box.querySelector('.name').textContent = d.name.replaceAll('_',' ');
+
     const pre = document.createElement('pre');
     pre.textContent = JSON.stringify(d.arguments, null, 2);
     box.appendChild(pre); agent.appendChild(box);
@@ -388,18 +285,43 @@ function renderEvent(agent, ev, d, ctx){
     const box = ctx.pending[d.id]; if (!box) return agent;
     box.querySelector('.state').textContent = d.ok ? 'ok' : 'failed';
     box.querySelector('.state').style.color = d.ok ? 'var(--ok)' : 'var(--bad)';
-    if (!d.ok) box.open = true;
+    // Details stay available without pushing the conversation off screen.
+    if (!d.ok) box.querySelector('.state').textContent = 'Failed · expand';
     renderChecks(d.result, box);
     const pre = document.createElement('pre');
     pre.textContent = JSON.stringify(d.result, null, 2).slice(0, 4000);
     box.appendChild(pre);
+  } else if (ev === 'face_selection_request') {
+    const card=el('face-request',agent);
+    el('prose',card,d.question);
+    el('hint',card,d.reason);
+    const list=document.createElement('ol');
+    for(const name of d.faces||[]) {const item=document.createElement('li');item.textContent=name;list.appendChild(item);}
+    card.appendChild(list);
+    el('hint',card,'Select these surfaces in Fusion, attach them, label them if needed, then send to continue.');
+    const button=document.createElement('button');button.textContent='Attach selected faces';
+    button.onclick=()=>$('#attach-faces').click();card.appendChild(button);
+    ctx.textNode=null;
+  } else if (ev === 'hybrid_plan') {
+    const details = thought(agent, `Astra plan ${d.number}: ${d.goal}`);
+    details.appendChild(document.createTextNode(JSON.stringify({assumptions:d.assumptions, steps:d.steps, checks:d.completion_checks, next:d.next, message:d.message, tool_development:d.tool_development}, null, 2)));
+    ctx.textNode = null;
+  } else if (ev === 'hybrid_replan') {
+    const details = thought(agent, 'Returning observations to Astra');
+    details.appendChild(document.createTextNode(JSON.stringify(d.reason, null, 2)));
+    ctx.textNode = null;
+  } else if (ev === 'jev_decision') {
+    const details = thought(agent, `Jev decision · ${Number(d.seconds || 0).toFixed(2)}s`);
+    details.appendChild(document.createTextNode(JSON.stringify(d.answers, null, 2)));
+    ctx.textNode = null;
   } else if (ev === 'vision') {
-    const v = el('think', agent); v.innerHTML = '<b>looked at it</b>';
+    const v = thought(agent, 'Visual check');
     v.appendChild(document.createTextNode(d.text)); ctx.textNode = null;
   } else if (ev === 'capture') {
-    showShot(d.url);
     const img = document.createElement('img');
     img.src = d.url; img.style.cssText = 'max-width:100%;border-radius:8px;margin:8px 0;border:1px solid var(--line)';
+    img.title = "Click to mark up this view"; img.style.cursor = "pointer";
+    img.onclick = () => editImage(d.url, "Viewport markup");
     agent.appendChild(img); ctx.textNode = null;
   } else if (ev === 'usage') {
     const bits = [];
@@ -407,7 +329,8 @@ function renderEvent(agent, ev, d, ctx){
     if (d.output_tokens || d.output) bits.push(`${d.output_tokens||d.output} out`);
     if (d.cached_input_tokens) bits.push(`${d.cached_input_tokens} cached`);
     if (d.session_cost_usd != null) bits.push(`$${(+d.session_cost_usd).toFixed(4)}`);
-    $('#usage').textContent = bits.join(' · ');
+    $('#usage').title = bits.join(' · ');
+    $('#usage').textContent = d.session_cost_usd != null ? `$${(+d.session_cost_usd).toFixed(3)}` : '';
   } else if (ev === 'stopped') {
     const why = d.before ? `Stopped before running ${d.before.join(', ')}.` : 'Stopped.';
     el('hint', agent, why);
@@ -450,33 +373,97 @@ async function refreshChats(){
 }
 
 async function openChat(id){
+  if (sending) return;
+  saveDraft();
   CHAT = id;
   const s = await fetch(`/api/session/${id}`).then(r => r.json());
+  if (CHAT !== id) return;
+  await restoreDraft(id);
+  $('#settings').classList.add('hide');
+  $('#settings-toggle').setAttribute('aria-expanded','false');
+  selectCurrentModel(s.provider, s.model);
+  $('#model-short').textContent = $('#preset').selectedOptions[0]?.textContent || s.model || 'Model';
+  progress=null; setBusy(Boolean(s.busy));
+  if (s.busy) { progressFromSession(s); monitorRemoteRun(id); }
+  $('main').classList.remove('show-rail');
   log.innerHTML = '';
   $('#usage').textContent = '';
   const ctx = {textNode:null, thinkBox:null, pending:{}, agent:null};
   for (const entry of (s.log || [])) {
     ctx.agent = renderEvent(ctx.agent, entry.kind, entry.data || {}, ctx);
   }
+  paintDesignState(s.design_state);
   if (!(s.log || []).length) {
-    note('New chat. Describe the part you want, or capture the viewport and draw on it.');
+    welcome();
   }
   scroll();
   await refreshChats();
 }
 
 async function newChat(){
+  if (sending) return;
   const s = await fetch('/api/sessions', {method:'POST'}).then(r => r.json());
   await openChat(s.id);
   $('#text').focus();
 }
 $('#newchat').onclick = newChat;
-$('#rail-toggle').onclick = () => $('main').classList.toggle('no-rail');
+$('#newchat-top').onclick = newChat;
+$('#history-close').onclick = () => $('main').classList.remove('show-rail');
+$('#rail-toggle').onclick = () => { $('#settings').classList.add('hide'); $('main').classList.toggle('show-rail'); };
+
+/* Exact face references are separate from screenshots and drawing pixels. */
+function faceHint(message){$('#face-hint').textContent=message;$('#face-hint').classList.toggle('hide',!message);}
+async function highlightFaces(refs){
+  try{
+    const response=await fetch(q('/api/face-selection'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'highlight',refs})});
+    const result=await response.json();if(!response.ok)throw new Error(result.error||'Could not highlight faces');
+  }catch(error){faceHint(String(error.message||error));}
+}
+function renderSentFaces(host,faces){
+  const strip=el('sent-faces',host);
+  for(const face of faces){
+    const button=el('sent-face',strip,face.tag+(face.label?' · '+face.label:''));
+    // el creates a div; use an actual button for keyboard access.
+    const control=document.createElement('button');control.className=button.className;control.textContent=button.textContent;
+    control.title='Highlight '+face.tag+' in Fusion';control.onclick=()=>highlightFaces([face.ref]);button.replaceWith(control);
+  }
+}
+function renderFaceAttachments(){
+  const host=$('#face-attached');host.replaceChildren();host.classList.toggle('hide',!faceAttachments.length);
+  $('#composer').classList.toggle('with-faces',Boolean(faceAttachments.length));
+  for(const face of faceAttachments){
+    const row=el('face-chip',host);
+    const title=el('face-title',row,face.tag+' · '+(face.body||'Selected face')+(face.occurrence?' · '+face.occurrence:''));title.title=title.textContent;
+    const show=document.createElement('button');show.textContent='Highlight';show.onclick=()=>highlightFaces([face.ref]);row.appendChild(show);
+    const remove=document.createElement('button');remove.textContent='×';remove.setAttribute('aria-label','Remove '+face.tag);
+    remove.onclick=()=>{faceAttachments=faceAttachments.filter(item=>item.ref!==face.ref);renderFaceAttachments();saveDraft();};row.appendChild(remove);
+    const label=document.createElement('input');label.className='face-label';label.placeholder='Label, e.g. tube socket';label.maxLength=160;
+    label.setAttribute('aria-label','Label '+face.tag);label.value=face.label||'';label.oninput=()=>{face.label=label.value;saveDraft();};row.appendChild(label);
+  }
+}
+$('#attach-faces').onclick=async()=>{
+  const chat=CHAT;const button=$('#attach-faces');button.disabled=true;
+  try{
+    const response=await fetch(q('/api/face-selection'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'attach'})});
+    const result=await response.json();if(CHAT!==chat)return;
+    if(!response.ok)throw new Error(result.error||'Could not read selected faces');
+    if(!result.faces?.length){faceHint('Select faces in Fusion, then click Faces. You can attach them one at a time. Bodies and edges do not count as faces.');return;}
+    if(faceAttachments.some(face=>face.document_id!==result.document_id))throw new Error('These faces are in another document. Remove the existing face attachments before switching designs.');
+    const additions=result.faces.filter(face=>!faceAttachments.some(old=>old.ref===face.ref));
+    if(faceAttachments.length+additions.length>12)throw new Error('Attach at most 12 faces per message.');
+    let number=Math.max(faceSequence,...faceAttachments.map(face=>Number(face.tag?.split(' ').at(-1))||0));
+    for(const face of additions)faceAttachments.push({...face,document_id:result.document_id,tag:'Face '+(++number),label:''});
+    faceSequence=number; renderFaceAttachments();saveDraft();
+    faceHint(result.ignored_non_faces ? 'Attached selected faces; ignored '+result.ignored_non_faces+' non-face selections.' : 'Faces attached. Add a label or refer to them by number in your message.');
+  }catch(error){if(CHAT===chat)faceHint(String(error.message||error));}
+  finally{button.disabled=false;}
+};
 
 /* ---------------- send ---------------- */
 async function send(){
+  if (sending) return;
   const text = $('#text').value.trim();
-  if (!text && !attachments.length) return;
+  if (!text && !attachments.length && !faceAttachments.length) return;
   $('#welcome')?.remove();
   $('.hint')?.remove?.();
 
@@ -487,20 +474,33 @@ async function send(){
       const i = document.createElement('img'); i.src = src; strip.appendChild(i);
     }
   }
+  if (faceAttachments.length) renderSentFaces(bubble,faceAttachments);
   if (text) bubble.appendChild(document.createTextNode(text));
   scroll();
 
-  const body = JSON.stringify({ text, images: attachments.slice() });
+  const sentImages = attachments.slice();
+  const sentFaces = JSON.parse(JSON.stringify(faceAttachments));
+  const sentFaceSequence=faceSequence;
+  beginProgress(CHAT); localStream = true; setBusy(true);
+  await rememberSubmission(CHAT, text, sentImages, sentFaces);
+  const body = JSON.stringify({ text, images: sentImages, faces: sentFaces });
   $('#text').value = ''; $('#text').style.height = 'auto';
   clearAttachments();
-  setBusy(true);
+  faceAttachments=[]; faceSequence=0; renderFaceAttachments(); faceHint(''); saveDraft();
 
   let agent = el('msg agent', log);
   const ctx = {textNode:null, thinkBox:null, pending:{}};
 
   try {
     const res = await fetch(q('/api/chat'), {method:'POST', headers:{'Content-Type':'application/json'}, body});
-    if (!res.ok) { addError((await res.json()).error || `HTTP ${res.status}`); $('#send').disabled=false; return; }
+    if (!res.ok) {
+      // A rejected request never consumed the draft. Keep it available to retry.
+      $('#text').value = text; attachments = sentImages; faceAttachments=sentFaces; faceSequence=sentFaceSequence; renderAttachments(); renderFaceAttachments(); saveDraft();
+      const message=(await res.json()).error || `HTTP ${res.status}`;
+      el('hint',bubble,'Not sent · '+message);
+      if(progress){progress.active=false;progress.phase='Message not sent';progress.ended=Date.now();paintProgress();}
+      throw new Error(message);
+    }
 
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = '';
@@ -512,23 +512,56 @@ async function send(){
         const ev = (raw.match(/^event: (.+)$/m) || [])[1];
         const dm = raw.match(/^data: ([\s\S]*)$/m); if (!ev || !dm) continue;
         let d; try { d = JSON.parse(dm[1]); } catch { continue; }
+        progressEvent(ev,d);
         agent = renderEvent(agent, ev, d, ctx) || agent;
         scroll();
       }
     }
   } catch (e) { addError(String(e)); }
-  setBusy(false); $('#text').focus();
+  localStream = false;
+  // A broken response stream does not prove the server stopped its run.
+  if (progress?.active) {
+    progress.phase='Checking run status'; paintProgress(); monitorRemoteRun(CHAT);
+  } else setBusy(false);
+  $('#text').focus();
   refreshChats();
 }
 
+function monitorRemoteRun(id){
+  clearTimeout(busyTimer);
+  busyTimer=setTimeout(async()=>{
+    if (CHAT!==id||localStream) return;
+    try {
+      const response=await fetch(`/api/session/${id}`);
+      if (!response.ok) throw new Error('Status unavailable');
+      const session=await response.json();
+      if (CHAT!==id||localStream) return;
+      // Reopened chats update while busy, not just after the entire run ends.
+      paintSessionLog(session); progressFromSession(session);
+      setBusy(Boolean(session.busy));
+      if (session.busy) monitorRemoteRun(id); else refreshChats();
+    } catch(e) {
+      if (progress) {progress.warning='Connection lost. The run may still be active in Fusion.';paintProgress();}
+      monitorRemoteRun(id);
+    }
+  },2000);
+}
 function setBusy(on){
+  sending = on;
+  paintProgress();
+  for (const id of ['#newchat','#newchat-top','#reset','#preset','#effort','#baseurl']) $(id).disabled = on;
+  $('#chats').style.pointerEvents = on ? 'none' : '';
   $('#send').classList.toggle('hide', on);
   $('#stop').classList.toggle('hide', !on);
   $('#send').disabled = on;
 }
 async function stopNow(){
   $('#stop').disabled = true;
-  try { await fetch(q('/api/stop'), {method:'POST'}); }
+  try {
+    const response=await fetch(q('/api/stop'), {method:'POST'});
+    if (!response.ok) throw new Error('Stop request failed');
+    if (progress) {progress.stopping=true;paintProgress();}
+  } catch(e) {addError(String(e));}
   finally { $('#stop').disabled = false; }
 }
 $('#stop').onclick = stopNow;
@@ -553,126 +586,390 @@ $('#reset').onclick = async () => {
   refreshChats();
 };
 
-/* ---------------- viewport + markup ---------------- */
-function showShot(url){
-  $('#stage-empty').classList.add('hide');
-  const img = $('#shot'); img.src = url; img.classList.remove('hide');
+function paintDesignState(state){
+  const entries=state?.entries||[];
+  $('#design-state').classList.toggle('hide',!entries.length);
+  $('#design-next').textContent=state?.next_action ? '· '+state.next_action : '';
+  const host=$('#design-entries'); host.replaceChildren();
+  for(const entry of entries){
+    const row=el('design-entry',host);
+    el('',row,entry.statement);
+    const labels={established:'Evidence recorded',open:'Unresolved',stale:'Needs rechecking',blocked:'Dependency unresolved'};
+    el('design-status'+(entry.status==='established'?'':' attention'),row,
+      (entry.kind[0].toUpperCase()+entry.kind.slice(1)+' · '+(labels[entry.status]||entry.status))
+      +(entry.depends_on?.length?' · Depends on '+entry.depends_on.join(', '):''));
+    if(entry.source) el('design-status',row,entry.source);
+  }
 }
-$('#grab').onclick = async () => {
-  $('#grab').disabled = true; $('#grab').textContent = '…';
-  try {
-    const r = await fetch('/api/capture?view=' + $('#view').value).then(r => r.json());
-    if (r.url) { showShot(r.url); if (drawing) setTimeout(fitCanvas, 60); }
-    else addError(r.error || r.message || 'capture failed');
-  } catch (e) { addError(String(e)); }
-  $('#grab').disabled = false; $('#grab').textContent = 'Capture';
+$('#correct-design').onclick=()=>{
+  const field=$('#text');
+  if(!field.value.trim()) field.value='Correction to the design intent: ';
+  field.focus(); field.setSelectionRange(field.value.length,field.value.length);
+  saveDraft();
 };
 
-function fitCanvas(){
-  const img = $('#shot'), c = $('#canvas');
-  if (img.classList.contains('hide') || !img.naturalWidth) return;
-  const r = img.getBoundingClientRect(), s = $('#stage').getBoundingClientRect();
-  c.width = img.naturalWidth; c.height = img.naturalHeight;
-  c.style.left = (r.left - s.left) + 'px'; c.style.top = (r.top - s.top) + 'px';
-  c.style.width = r.width + 'px'; c.style.height = r.height + 'px';
-  redraw();
+/* Run activity is independent of the transcript's collapsed detail rows. */
+let progress = null;
+function runStorage(id, value){
+  try {
+    const key = 'FusionStudioRun:'+id;
+    if (value) localStorage.setItem(key,JSON.stringify(value));
+    else return JSON.parse(localStorage.getItem(key)||'null');
+  } catch (e) { return null; }
 }
+function beginProgress(id, restored=false){
+  const stored = restored ? runStorage(id) : null;
+  progress = {started:stored?.started||Date.now(),observed:restored&&!stored,
+    last:Date.now(),calls:0,lastCall:'',signature:'',repeat:0,phase:'Waiting for model',active:true,warning:'',stopping:false};
+  if (!restored) runStorage(id,{started:progress.started});
+  paintProgress();
+}
+function duration(ms){
+  const secs=Math.max(0,Math.floor(ms/1000));
+  return `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
+}
+function progressEvent(ev,d){
+  if (!progress) return;
+  progress.last=Date.now();
+  const name=String(d.name||'').replaceAll('_',' ');
+  if (ev==='tools'||ev==='model_start') progress.phase='Waiting for model';
+  else if (ev==='thinking'||ev==='thinking_start') progress.phase='Model is reasoning';
+  else if (ev==='progress_warning') progress.warning=d.message||'';
+  else if (ev==='hybrid_phase') progress.phase=d.message||'Executing plan';
+  else if (ev==='hybrid_plan') progress.phase='Executing Astra plan';
+  else if (ev==='hybrid_replan') progress.phase='Returning observations to Astra';
+  else if (ev==='hybrid_step') progress.phase='Completed '+d.kind+' step';
+  else if (ev==='jev_progress') progress.phase=d.message||'Jev is deciding';
+  else if (ev==='jev_decision') progress.phase='Jev decision received';
+  else if (ev==='tool_pending') progress.phase='Preparing '+name;
+  else if (ev==='tool_start') {
+    progress.calls++;
+    const signature=JSON.stringify([d.name,d.arguments]);
+    progress.repeat=signature===progress.signature ? progress.repeat+1 : 1;
+    progress.signature=signature;progress.lastCall=name;
+    progress.phase='Running '+name;
+    progress.warning=progress.repeat>=3 ? `Possible loop: ${name} has been requested ${progress.repeat} times in a row with the same arguments.` : '';
+  } else if (ev==='tool_end') progress.phase=d.ok?'Reading '+name+' result':name+' failed';
+  else if (ev==='vision'||ev==='vision_start') progress.phase='Checking the image';
+  else if (ev==='face_selection_request') progress.phase='Waiting for your face selection';
+  else if (ev==='text') progress.phase='Writing response';
+  else if (ev==='error') {progress.phase='Run reported an error';progress.warning=d.message||'Inspect the error in the conversation.';}
+  else if (ev==='stopped') {progress.phase='Stopped';progress.stopping=false;}
+  else if (ev==='done') {
+    progress.active=false;progress.ended=Date.now();
+    if (!['Stopped','Run reported an error','Waiting for your face selection'].includes(progress.phase)) progress.phase='Run ended';
+  }
+  paintProgress();
+}
+function paintProgress(){
+  if (!progress) {$('#run-state').classList.add('hide');return;}
+  $('#run-state').classList.remove('hide');
+  $('#run-state').classList.toggle('inactive',!progress.active);
+  $('#run-label').textContent=progress.stopping?'Stop requested':progress.phase;
+  $('#run-time').textContent=(progress.observed?'Watching ':'')+duration((progress.ended||Date.now())-progress.started);
+  const quiet=Math.max(0,Math.floor((Date.now()-progress.last)/1000));
+  $('#run-meta').textContent=`${progress.calls} tool call${progress.calls===1?'':'s'}`+(progress.active?` · Last activity ${quiet}s ago`:'');
+  const warning=progress.stopping ? 'Waiting for the current request to return. A running Fusion operation cannot be interrupted.' : progress.warning || (progress.active&&quiet>=30?'No new activity for '+quiet+'s. The current request may still be waiting; completion is not confirmed.':'');
+  $('#run-warning').textContent=warning;
+  $('#run-warning').classList.toggle('hide',!warning);
+  $('#run-state').classList.toggle('attention',Boolean(warning));
+}
+setInterval(paintProgress,1000);
+function progressFromSession(session){
+  const entries=session.log||[];
+  // Keep elapsed time from this browser; older servers have no turn timestamp.
+  if (!progress) beginProgress(session.id,true);
+  const start=entries.findLastIndex(e=>e.kind==='turn_start'||e.kind==='user');
+  const old={started:progress.started,observed:progress.observed,stopping:progress.stopping};
+  progress={...old,last:Date.now(),calls:0,lastCall:'',signature:'',repeat:0,phase:'Waiting for model',active:session.busy,warning:''};
+  for (const entry of entries.slice(Math.max(0,start))) progressEvent(entry.kind,entry.data||{});
+  progress.last=(session.updated||Date.now()/1000)*1000;
+  progress.active=session.busy;
+  if (!session.busy) progress.ended=progress.ended||Date.now();
+  paintProgress();
+}
+function paintSessionLog(session){
+  const pinned=log.scrollHeight-log.scrollTop-log.clientHeight<70;
+  const position=log.scrollTop;
+  const opened=Array.from(log.querySelectorAll('details')).map((d,i)=>d.open?i:-1).filter(i=>i>=0);
+  log.innerHTML='';
+  const ctx={textNode:null,thinkBox:null,pending:{},agent:null};
+  for (const entry of (session.log||[])) ctx.agent=renderEvent(ctx.agent,entry.kind,entry.data||{},ctx);
+  Array.from(log.querySelectorAll('details')).forEach((d,i)=>d.open=opened.includes(i));
+  paintDesignState(session.design_state);
+  if (pinned) scroll();else log.scrollTop=position;
+}
+
+/* ---------------- viewport + markup ---------------- */
+let editorSource = '', editorLabel = 'Drawing', imageReady = false;
+let draftChat = null, sending = false, localStream = false, busyTimer = null;
+const drafts = new Map();
+const draftDB = new Promise(resolve => {
+  if (!window.indexedDB) { resolve(null); return; }
+  const request = indexedDB.open('FusionStudioDrafts', 1);
+  request.onupgradeneeded = () => request.result.createObjectStore('drafts');
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => resolve(null);
+});
+async function rememberSubmission(id, text, images, faces=[]){
+  // Drafts are cleared on send. Keep an independent copy of the submitted
+  // prompt and flattened drawings so a later retry can reproduce the input.
+  const db = await draftDB;
+  if (!db) { addError('Local history is unavailable; this message’s images will not be saved for reuse.'); return; }
+  await new Promise(resolve => {
+    try {
+      const tx = db.transaction('drafts','readwrite');
+      tx.objectStore('drafts').put({text,images:images.slice(),faces:JSON.parse(JSON.stringify(faces)),chat:id,sent:Date.now()},'sent:'+id+':'+Date.now());
+      tx.oncomplete = resolve;
+      tx.onabort = tx.onerror = () => { addError('Could not save images to local history.'); resolve(); };
+    } catch(e) { addError('Could not save images to local history.'); resolve(); }
+  });
+}
+function snapshotDraft(){
+  return {text:$('#text').value, attachments:attachments.slice(), faces:JSON.parse(JSON.stringify(faceAttachments)), faceSequence, source:editorSource,
+          label:editorLabel, strokes:JSON.parse(JSON.stringify(strokes))};
+}
+function saveDraft(){
+  if (!draftChat) return;
+  const id = draftChat, value = snapshotDraft();
+  drafts.set(id, value);
+  draftDB.then(db => {
+    if (!db) return;
+    try { db.transaction('drafts','readwrite').objectStore('drafts').put(value,id); }
+    catch (e) { /* In-memory drafts still work when disk storage is unavailable. */ }
+  });
+}
+async function restoreDraft(id){
+  let draft = drafts.get(id);
+  if (!draft) {
+    const db = await draftDB;
+    if (db) draft = await new Promise(resolve => {
+      const request = db.transaction('drafts').objectStore('drafts').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    });
+  }
+  if (CHAT !== id) return;
+  draftChat = id;
+  attachments = draft?.attachments || [];
+  faceAttachments = draft?.faces || [];
+  faceSequence = draft?.faceSequence || Math.max(0,...faceAttachments.map(face=>Number(face.tag?.split(' ').at(-1))||0));
+  faceHint(''); renderFaceAttachments();
+  $('#text').value = draft?.text || '';
+  renderAttachments();
+  strokes = draft?.strokes || [];
+  editorSource = draft?.source || '';
+  editorLabel = draft?.label || 'Drawing';
+  document.body.classList.remove('editing');
+  if (editorSource) showShot(editorSource);
+  else {
+    imageReady = false;
+    $('#shot').classList.add('hide'); $('#canvas').classList.add('hide');
+    $('#stage-empty').classList.remove('hide'); $('#attach').disabled = true;
+  }
+  $('#resume-drawing').classList.toggle('hide', !editorSource);
+}
+window.addEventListener('pagehide', saveDraft);
+$('#text').addEventListener('input', saveDraft);
+function editorError(message){
+  $('#editor-error').textContent = message;
+  $('#editor-error').classList.toggle('hide', !message);
+}
+function showShot(url){
+  imageReady = false; $('#attach').disabled = true;
+  $('#stage-empty').classList.add('hide');
+  const img = $('#shot'); img.classList.remove('hide'); img.src = url;
+  $('#drawing-label').textContent = editorLabel;
+}
+function enterEditor(){
+  document.body.classList.add('editing');
+  $('main').classList.remove('show-rail');
+  drawing = true;
+  $('#settings').classList.add('hide');
+  $('#canvas').classList.remove('hide'); $('#drawtools').classList.remove('hide');
+  $('#draw').textContent = 'Drawing';
+  $('#resume-drawing').classList.remove('hide');
+  requestAnimationFrame(fitCanvas);
+}
+function flatten(){
+  if (!imageReady) return null;
+  const img = $('#shot'), out = document.createElement('canvas');
+  out.width = img.naturalWidth; out.height = img.naturalHeight;
+  const x = out.getContext('2d');
+  x.drawImage(img, 0, 0); x.drawImage($('#canvas'), 0, 0);
+  return out.toDataURL('image/png');
+}
+// Starting another drawing retains the previous marked draft as an attachment.
+function preserveDrawing(){
+  if (!strokes.length) return true;
+  const source = flatten();
+  if (!source) { editorError('Wait for the image to finish loading.'); return false; }
+  if (!addAttachment(source)) { enterEditor(); return false; }
+  return true;
+}
+function editImage(url, label='Image', preserve=true){
+  if (preserve && !preserveDrawing()) return false;
+  strokes = []; stroke = null; editorSource = url; editorLabel = label;
+  editorError(''); showShot(url); enterEditor(); saveDraft();
+  return true;
+}
+async function captureAndDraw(){
+  if (!preserveDrawing()) return;
+  // The preserved drawing now lives in the attachment strip.
+  strokes = []; redraw(); saveDraft();
+  for (const id of ['#grab','#capture-markup']) $(id).disabled = true;
+  const chat = CHAT;
+  try {
+    const response = await fetch('/api/capture?view=' + $('#view').value);
+    const r = await response.json();
+    if (CHAT !== chat) return;
+    if (!response.ok || !r.url) throw new Error(r.error || r.message || 'Capture failed');
+    editImage(r.url, 'Viewport markup', false);
+  } catch (e) { addError(String(e)); editorError(String(e)); }
+  finally { for (const id of ['#grab','#capture-markup']) $(id).disabled = false; }
+}
+$('#grab').onclick = captureAndDraw;
+$('#capture-markup').onclick = () => { $('#view').value = 'current'; captureAndDraw(); };
+$('#scratchpad').onclick = () => {
+  const blank = document.createElement('canvas'); blank.width = 1200; blank.height = 900;
+  const x = blank.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0,0,1200,900);
+  editImage(blank.toDataURL('image/png'), 'Scratchpad');
+};
+$('#resume-drawing').onclick = enterEditor;
+$('#back-chat').onclick = () => { saveDraft(); document.body.classList.remove('editing'); $('#text').focus(); };
+$('#draw').onclick = enterEditor;
+$('#draw-tool').onchange = () => {
+  $('#label-text').classList.toggle('hide', $('#draw-tool').value !== 'text');
+  if ($('#draw-tool').value === 'text') $('#label-text').focus();
+};
+$('#shot').addEventListener('load', () => {
+  imageReady = true; $('#attach').disabled = false; fitCanvas();
+});
+$('#shot').addEventListener('error', () => {
+  imageReady = false; $('#attach').disabled = true;
+  editorError('This image could not be loaded. Capture the view again or add an image.');
+});
+function fitCanvas(){
+  const img = $('#shot'), c = $('#canvas'), stage = $('#stage');
+  if (!imageReady || !img.naturalWidth) return;
+  c.width = img.naturalWidth; c.height = img.naturalHeight; redraw();
+  if (!stage.clientWidth || !stage.clientHeight) return;
+  const scale = Math.min(Math.max(1,stage.clientWidth-28)/img.naturalWidth,Math.max(1,stage.clientHeight-28)/img.naturalHeight);
+  const w = img.naturalWidth*scale, h = img.naturalHeight*scale;
+  for (const item of [img,c]) {
+    item.style.width = w+'px'; item.style.height = h+'px';
+    item.style.left = (stage.clientWidth-w)/2+'px'; item.style.top = (stage.clientHeight-h)/2+'px';
+  }
+}
+window.addEventListener('resize', fitCanvas);
+if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe($('#stage'));
 function redraw(){
   const c = $('#canvas'), x = c.getContext('2d');
   x.clearRect(0, 0, c.width, c.height);
-  x.lineCap = x.lineJoin = 'round';
-  x.lineWidth = Math.max(3, c.width / 320);
+  const width = Math.max(4, c.width / 260);
   for (const s of strokes) {
-    x.strokeStyle = s.c; x.beginPath();
-    s.pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]));
-    x.stroke();
+    const a = s.pts[0], b = s.pts[s.pts.length-1];
+    x.save(); x.lineCap = x.lineJoin = 'round'; x.lineWidth = width;
+    x.strokeStyle = x.fillStyle = s.c;
+    if (s.tool === 'erase') { x.globalCompositeOperation = 'destination-out'; x.lineWidth = width * 6; }
+    if (s.tool === 'text') {
+      x.font = `600 ${Math.max(32,c.width/24)}px sans-serif`; x.fillText(s.text,a[0],a[1]);
+    } else if (s.tool === 'rect') x.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+    else {
+      x.beginPath();
+      const points = s.tool === 'arrow' ? [a,b] : s.pts;
+      points.forEach((p,i) => i ? x.lineTo(...p) : x.moveTo(...p));
+      if (points.length === 1) x.lineTo(a[0]+0.1,a[1]+0.1);
+      x.stroke();
+      if (s.tool === 'arrow' && Math.hypot(b[0]-a[0],b[1]-a[1]) > 1) {
+        const angle = Math.atan2(b[1]-a[1],b[0]-a[0]), length = width*5;
+        x.beginPath(); x.moveTo(...b);
+        x.lineTo(b[0]-length*Math.cos(angle-0.5),b[1]-length*Math.sin(angle-0.5));
+        x.moveTo(...b); x.lineTo(b[0]-length*Math.cos(angle+0.5),b[1]-length*Math.sin(angle+0.5)); x.stroke();
+      }
+    }
+    x.restore();
   }
 }
-$('#draw').onclick = () => {
-  drawing = !drawing;
-  $('#canvas').classList.toggle('hide', !drawing);
-  $('#drawtools').classList.toggle('hide', !drawing);
-  $('#draw').textContent = drawing ? '✏️ Drawing' : '✏️ Markup';
-  if (drawing) fitCanvas();
-};
-$('#shot').addEventListener('load', () => { if (drawing) fitCanvas(); });
-window.addEventListener('resize', () => { if (drawing) fitCanvas(); });
-
 function at(e){
   const c = $('#canvas'), r = c.getBoundingClientRect();
-  return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height];
+  return [(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height];
 }
 const cv = $('#canvas');
 cv.addEventListener('pointerdown', e => {
-  cv.setPointerCapture(e.pointerId);
-  stroke = {c: colour, pts: [at(e)]}; strokes.push(stroke); redraw();
+  if (!imageReady || e.button !== 0) return;
+  const tool = $('#draw-tool').value, text = $('#label-text').value.trim();
+  if (tool === 'text' && !text) { editorError('Type a label, then click where it belongs.'); return; }
+  editorError(''); e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  stroke = {c:colour, tool, text, pts:[at(e)]}; strokes.push(stroke); redraw();
 });
-cv.addEventListener('pointermove', e => { if (stroke) { stroke.pts.push(at(e)); redraw(); } });
-cv.addEventListener('pointerup', () => { stroke = null; });
+cv.addEventListener('pointermove', e => {
+  if (!stroke || stroke.tool === 'text') return;
+  if (['arrow','rect'].includes(stroke.tool)) stroke.pts[1] = at(e);
+  else stroke.pts.push(at(e));
+  redraw();
+});
+for (const name of ['pointerup','pointercancel','lostpointercapture']) cv.addEventListener(name, () => { stroke = null; saveDraft(); });
 document.querySelectorAll('.swatch').forEach(b => b.onclick = () => {
   document.querySelectorAll('.swatch').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); colour = b.dataset.c;
 });
-$('#undo').onclick = () => { strokes.pop(); redraw(); };
-$('#clear').onclick = () => { strokes = []; redraw(); };
-
+$('#undo').onclick = () => { strokes.pop(); redraw(); saveDraft(); };
+$('#clear').onclick = () => { strokes = []; redraw(); saveDraft(); };
 function renderAttachments(){
-  const host = $('#attached');
-  host.innerHTML = '';
+  const host = $('#attached'); host.innerHTML = '';
   host.classList.toggle('on', attachments.length > 0);
   attachments.forEach((src, index) => {
     const cell = document.createElement('div'); cell.className = 'thumb';
-    const img = document.createElement('img'); img.src = src;
-    img.title = 'Click to send back to the canvas and keep marking it up';
-    // Re-open a thumbnail on the canvas so a capture can be annotated in
-    // several passes instead of having to get it right in one.
+    const img = document.createElement('img'); img.src = src; img.title = 'Click to mark up this image';
     img.onclick = () => {
-      const shot = $('#shot');
-      shot.src = src; shot.classList.remove('hide');
-      $('#stage-empty').classList.add('hide');
-      strokes = [];
-      attachments.splice(index, 1); renderAttachments();
-      if (!drawing) $('#draw').click(); else setTimeout(fitCanvas, 60);
+      if (strokes.length && !preserveDrawing()) return;
+      attachments.splice(index,1); renderAttachments();
+      editImage(src,'Image markup',false);
     };
-    const tag = document.createElement('span');
-    tag.className = 'n'; tag.textContent = index + 1;
-    const drop = document.createElement('button'); drop.textContent = '×';
-    drop.onclick = e => { e.stopPropagation();
-                          attachments.splice(index, 1); renderAttachments(); };
-    cell.append(img, tag, drop); host.appendChild(cell);
+    const tag = document.createElement('span'); tag.className = 'n'; tag.textContent = index+1;
+    const drop = document.createElement('button'); drop.textContent = '×'; drop.title = 'Remove image';
+    drop.onclick = e => { e.stopPropagation(); attachments.splice(index,1); renderAttachments(); saveDraft(); };
+    cell.append(img,tag,drop); host.appendChild(cell);
   });
 }
 function addAttachment(dataUrl){
-  if (attachments.length >= 8) { addError('Eight attachments is the limit per message.'); return; }
-  attachments.push(dataUrl); renderAttachments(); $('#text').focus();
+  if (attachments.length >= 8) { editorError('Eight images is the limit per message.'); addError('Eight images is the limit per message.'); return false; }
+  attachments.push(dataUrl); renderAttachments(); saveDraft(); return true;
 }
-function clearAttachments(){ attachments = []; renderAttachments(); }
-
+function clearAttachments(){ attachments = []; renderAttachments(); saveDraft(); }
 $('#attach').onclick = () => {
-  const img = $('#shot'); if (img.classList.contains('hide')) return;
-  // Flatten the capture and the markup into one image so the model sees the
-  // annotation in place rather than as a separate overlay it must align.
-  const out = document.createElement('canvas');
-  out.width = img.naturalWidth; out.height = img.naturalHeight;
-  const x = out.getContext('2d');
-  x.drawImage(img, 0, 0);
-  x.drawImage($('#canvas'), 0, 0);
-  addAttachment(out.toDataURL('image/png'));
-  // Clear the markup but keep the capture, so the next Attach is a fresh
-  // annotation rather than an accumulation of every previous one.
-  strokes = []; redraw();
+  const source = flatten(); if (!source || !addAttachment(source)) return;
+  strokes = []; redraw(); saveDraft();
+  document.body.classList.remove('editing'); $('#text').focus();
+};
+function readImage(file){
+  if (!file?.type.startsWith('image/')) return;
+  const fr = new FileReader();
+  fr.onload = () => editImage(fr.result,'Image markup');
+  fr.onerror = () => addError('Could not read the image.');
+  fr.readAsDataURL(file);
+}
+$('#upload').onclick = () => $('#image-file').click();
+$('#image-file').onchange = e => { readImage(e.target.files[0]); e.target.value = ''; };
+document.addEventListener('paste', e => {
+  const file = Array.from(e.clipboardData.files).find(f => f.type.startsWith('image/'));
+  if (file) { e.preventDefault(); readImage(file); }
+});
+$('#settings-close').onclick = () => { $('#settings').classList.add('hide'); $('#settings-toggle').setAttribute('aria-expanded','false'); };
+$('#settings-toggle').onclick = () => {
+  $('main').classList.remove('show-rail');
+  const hidden = $('#settings').classList.toggle('hide');
+  $('#settings-toggle').setAttribute('aria-expanded',String(!hidden));
 };
 
-document.addEventListener('paste', e => {
-  for (const item of e.clipboardData.files) {
-    if (!item.type.startsWith('image/')) continue;
-    const fr = new FileReader();
-    fr.onload = () => addAttachment(fr.result);
-    fr.readAsDataURL(item);
-  }
-});
+for (const b of document.querySelectorAll('[data-tool]')) b.onclick = () => {
+  $('#draw-tool').value = b.dataset.tool;
+  for (const item of document.querySelectorAll('[data-tool]')) item.setAttribute('aria-pressed',String(item === b));
+  $('#draw-tool').onchange();
+};
+$('#ink-colour').oninput = e => { colour = e.target.value; };
+boot().catch(e => addError('Could not connect to Studio: '+e));
 
-boot();
 </script>
-</body>
-</html>
+</body></html>

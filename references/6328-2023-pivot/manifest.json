@@ -1,0 +1,253 @@
+{
+  "source": "https://frcdesign.org/mechanism-examples/pivots/6328_2023_pivot/",
+  "retrieved_utc": "2026-09-07T03:54:01.631819+00:00",
+  "page_sha256": "5780a1572af0fcb8aec926332b159ae968d2763b7babe152a7684cf43926263b",
+  "images": [
+    {
+      "number": 1,
+      "url": "https://frcdesign.org/_astro/book.C-iZy4YT.svg",
+      "alt": "FRCDesign.org logo",
+      "file": "images/book.C-iZy4YT.svg",
+      "technical": false,
+      "bytes": 549,
+      "sha256": "2feadcc26c4d9fd84b2e7ab8c3d8741d32b72a79d35265634a59fbc2f087c148"
+    },
+    {
+      "number": 2,
+      "url": "https://frcdesign.org/_astro/6328_2023_pivot.BYHlO0ox_ZAvbBX.webp",
+      "alt": "Mechanical Advantage Pivot",
+      "file": "images/6328_2023_pivot.BYHlO0ox_ZAvbBX.webp",
+      "technical": true,
+      "bytes": 318732,
+      "sha256": "18742842aa6070f7297490187f4705120e181d9a88f5dc21cc75a27641e0ca37",
+      "pixels": [
+        2547,
+        3296
+      ]
+    },
+    {
+      "number": 3,
+      "url": "https://frcdesign.org/_astro/6328_forces.C6zYGfl-_gxekY.webp",
+      "alt": "6328 Force Breakdown",
+      "file": "images/6328_forces.C6zYGfl-_gxekY.webp",
+      "technical": true,
+      "bytes": 154296,
+      "sha256": "aa53f88e56f48d5704844fa4c09434c7a67c07bbfce5ad7ac030c2833921d79e",
+      "pixels": [
+        3255,
+        1725
+      ]
+    },
+    {
+      "number": 4,
+      "url": "https://frcdesign.org/_astro/6328_gearbox.C7lPFEq5_JYhCU.webp",
+      "alt": "6328 Gearbox",
+      "file": "images/6328_gearbox.C7lPFEq5_JYhCU.webp",
+      "technical": true,
+      "bytes": 170466,
+      "sha256": "b153c4e501b568e62a964dbaa6775750c234f8c00486b856ac49568c243f9615",
+      "pixels": [
+        3296,
+        2547
+      ]
+    },
+    {
+      "number": 5,
+      "url": "https://frcdesign.org/_astro/6328_1.DUrLLxbS_Z1j2JKV.webp",
+      "alt": "6328_1",
+      "file": "images/6328_1.DUrLLxbS_Z1j2JKV.webp",
+      "technical": true,
+      "bytes": 78804,
+      "sha256": "4ac38ad8f6c6091e4ab0595c68a26f0a6223e37fea040d423787f721ba2696ee",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 6,
+      "url": "https://frcdesign.org/_astro/6328_2.CpR60tNr_Z1wpUoQ.webp",
+      "alt": "6328_2",
+      "file": "images/6328_2.CpR60tNr_Z1wpUoQ.webp",
+      "technical": true,
+      "bytes": 212066,
+      "sha256": "f069f63e9359b0caa595e15718b99b1ca6f97c999f9e9834312bb8731e5359d6",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 7,
+      "url": "https://frcdesign.org/_astro/6328_3.BHW_btY7_1Gw5Tn.webp",
+      "alt": "6328_3",
+      "file": "images/6328_3.BHW_btY7_1Gw5Tn.webp",
+      "technical": true,
+      "bytes": 84158,
+      "sha256": "4f409c629101b6e962ea6af58847e77f0dc8528f8482c8d4a21e0cefb3c0a8e2",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 8,
+      "url": "https://frcdesign.org/_astro/6328_4.xdb5W7xb_Zs4rLa.webp",
+      "alt": "6328_4",
+      "file": "images/6328_4.xdb5W7xb_Zs4rLa.webp",
+      "technical": true,
+      "bytes": 184940,
+      "sha256": "4dd1b98ef0d3b7aa0f856b5dd7ee62aaa5d2d32a5e806837428da91b27b7547a",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 9,
+      "url": "https://frcdesign.org/_astro/6328_5.DAoPfnzS_Z1kyN9y.webp",
+      "alt": "6328_5",
+      "file": "images/6328_5.DAoPfnzS_Z1kyN9y.webp",
+      "technical": true,
+      "bytes": 62208,
+      "sha256": "d9b1927f3468c75b895672c6f894f6670b6725170b9a5fc1450bac603d2627c9",
+      "pixels": [
+        1237,
+        1600
+      ]
+    },
+    {
+      "number": 10,
+      "url": "https://frcdesign.org/_astro/6328_6.D42odaXi_2yh3k.webp",
+      "alt": "6328_6",
+      "file": "images/6328_6.D42odaXi_2yh3k.webp",
+      "technical": true,
+      "bytes": 62034,
+      "sha256": "d52e836d051efd07f56d3b85c66e5cd86b8244a8309f208fa5bef8add4f3a166",
+      "pixels": [
+        1237,
+        1600
+      ]
+    },
+    {
+      "number": 11,
+      "url": "https://frcdesign.org/_astro/6328_7.BGRBj-lI_Z1EHOnK.webp",
+      "alt": "6328_7",
+      "file": "images/6328_7.BGRBj-lI_Z1EHOnK.webp",
+      "technical": true,
+      "bytes": 33594,
+      "sha256": "38149016634b1a30fed7caef4f40555ba6de8e6214431421af4774245e868701",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 12,
+      "url": "https://frcdesign.org/_astro/6328_8.CEQybzOK_xQizz.webp",
+      "alt": "6328_8",
+      "file": "images/6328_8.CEQybzOK_xQizz.webp",
+      "technical": true,
+      "bytes": 70062,
+      "sha256": "83d850d2f05d9556282fcf4cc51e2c4090c87c4bcdcba0bd2fc15a32eda6c4d2",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 13,
+      "url": "https://frcdesign.org/_astro/6328_9.QUCGNuUk_Z1Cdlg8.webp",
+      "alt": "6328_9",
+      "file": "images/6328_9.QUCGNuUk_Z1Cdlg8.webp",
+      "technical": true,
+      "bytes": 73096,
+      "sha256": "4e2e606c626ae78eb11e3789b37ddcd83607a42a46161ce302f0c8b6c613e76b",
+      "pixels": [
+        1600,
+        1237
+      ]
+    },
+    {
+      "number": 14,
+      "url": "https://frcdesign.org/_astro/6328_10.BcrJoN_C_ZHUmUN.webp",
+      "alt": "6328_10",
+      "file": "images/6328_10.BcrJoN_C_ZHUmUN.webp",
+      "technical": true,
+      "bytes": 67360,
+      "sha256": "661ae4b2df131e974ee3f150023247e161325b20ddfb09d77b66d2a33c6155c4",
+      "pixels": [
+        1237,
+        1600
+      ]
+    },
+    {
+      "number": 15,
+      "url": "https://frcdesign.org/_astro/6328_11.D1HcN6rT_19WgX.webp",
+      "alt": "6328_11",
+      "file": "images/6328_11.D1HcN6rT_19WgX.webp",
+      "technical": true,
+      "bytes": 33132,
+      "sha256": "4704169cf3ed725187fa6a99a1ad82c2c2f98a573ead6d7c9f9a80c0cec0e08f",
+      "pixels": [
+        1237,
+        1600
+      ]
+    },
+    {
+      "number": 16,
+      "url": "https://frcdesign.org/_astro/6328_12.C5U7lDBl_1h56EN.webp",
+      "alt": "6328_12",
+      "file": "images/6328_12.C5U7lDBl_1h56EN.webp",
+      "technical": true,
+      "bytes": 77028,
+      "sha256": "36b4ce79a4a87679d716b8403cc35a832829076c6428d49c1777a011d1eb02f2",
+      "pixels": [
+        1237,
+        1600
+      ]
+    },
+    {
+      "number": 17,
+      "url": "https://frcdesign.org/_astro/6328_13.ZZy2SNJo_Z16YwaD.webp",
+      "alt": "6328_13",
+      "file": "images/6328_13.ZZy2SNJo_Z16YwaD.webp",
+      "technical": true,
+      "bytes": 58480,
+      "sha256": "bbc7feb23f8621cbb94a6a3bf5189d744cb2b0a311588ec526d55a0cb093756a",
+      "pixels": [
+        1237,
+        1600
+      ]
+    },
+    {
+      "number": 18,
+      "url": "https://frcdesign.org/_astro/wcp.Dd-N-j9s.svg",
+      "alt": "West Coast Products",
+      "file": "images/wcp.Dd-N-j9s.svg",
+      "technical": false,
+      "bytes": 209518,
+      "sha256": "b9f11cdbc378ed0211f0f3bc034ea729d7424d50cbade62cf60d0ca3ec6aa953"
+    },
+    {
+      "number": 19,
+      "url": "https://frcdesign.org/_astro/fabworks-black.Cu2A4ixI.svg",
+      "alt": "Fabworks",
+      "file": "images/fabworks-black.Cu2A4ixI.svg",
+      "technical": false,
+      "bytes": 6827,
+      "sha256": "ae82fa231bc01f40a88a3bf009697dfa398ed55301f4094adb74945f00700c1b"
+    },
+    {
+      "number": 20,
+      "url": "https://frcdesign.org/_astro/fabworks-white.DvacXcbh.svg",
+      "alt": "Fabworks",
+      "file": "images/fabworks-white.DvacXcbh.svg",
+      "technical": false,
+      "bytes": 7946,
+      "sha256": "7436aade32014ebb56ef901b099c7a7f9805ad0acaaab2cc5df11954f3a4fe2f"
+    }
+  ],
+  "technical_images": 16,
+  "note": "All 20 img assets downloaded. Inline vector icons remain in source.html. Video URLs retained; video streams and linked pages are outside this page archive."
+}

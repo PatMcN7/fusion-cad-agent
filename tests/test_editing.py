@@ -31,6 +31,14 @@ class NativeEditing(unittest.TestCase):
         self.timeline.entries.append(entry);self.timeline.markerPosition+=1
         return editing.ref(self.design,entity)
 
+    def test_construction_planes_use_component_property(self):
+        plane=self.timeline.item(0).entity
+        plane.component=plane.parentComponent
+        del plane.parentComponent
+        plane.objectType='adsk::fusion::ConstructionPlane'
+        self.assertEqual(editing.row(self.design,plane)['component'],'root')
+        self.assertEqual(len(editing.tree(self.design,component='root')['entries']),3)
+
     def test_wrong_document_ref_is_rejected(self):
         key=editing.ref(self.design,self.timeline.item(2).entity)
         self.design.parentDocument=object()

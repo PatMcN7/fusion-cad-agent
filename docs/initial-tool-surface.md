@@ -10,7 +10,8 @@ The successful replay did not establish that this was a good default for other C
 Start with tools that establish the document, inspect existing state, observe
 results, discover capabilities and resolve pending operations. Load modeling
 schemas when their task is known. There is no target count of 12: the current
-selection needs 11 tools, including the subsequently added empty-document tool.
+selection now needs 14 tools, including empty-document creation, the compact
+design-state record and exact user-selected faces added on September 6.
 This is a reasoned default, not an empirically proven
 optimal set; operation frequency across varied real tasks has not been measured.
 
@@ -27,6 +28,9 @@ optimal set; operation frequency across varied real tasks has not been measured.
 | `cancel_operation` | Cancel queued work without loading another group first. |
 | `load_tools` | Discover and expose task-relevant capabilities using a compact group directory. |
 | `get_result` | Recover earlier evidence after context compaction without repeating native work. |
+| `update_design_state` | Track requirements, dependencies, assumptions and cited evidence independently of trimmed chat history. |
+| `get_selected_faces` | Capture the user's exact native face selection, including the component instance, without guessing a geometric filter. |
+| `request_face_selection` | Ask a concrete interface question and await user-selected faces in Studio. |
 
 The three old constructors move out of the default: `create_test_box` is in
 `geometry`, and `lattice_pockets`/`edit_lattice` are in `patterns`. The other nine
@@ -45,10 +49,12 @@ descriptions live together in `studio/agent_runtime.py`.
 
 | Group | Operations |
 |---|---|
-| `geometry` | New box/document, polygon extrusion and cuts |
+| `geometry` | New box/document, polygon extrusion/cuts and face-to-face referenced extrusion |
+| `measurement` | Paged geometry inspection, exact entity distances, parallel-plane separation and relationship checks |
+| `selection` | Capture, resolve and highlight exact user-selected faces |
 | `editing` | Explicit trailing-feature deletion and scoped undo |
 | `patterns` | Isogrid/hex lattices, managed lattice revision, router pocket fillets |
-| `assembly` | Imports, bodies to components, joint candidates, joints, interference |
+| `assembly` | Imports, component placement/copy, geometry inspection/measurement, joints and interference |
 | `generators` | Specialized tube frames, bellypans, fasteners, replacement isogrid bars |
 | `engineering` | Mechanics calculations, thread inspection, 6061 material assignment |
 | `validation` | Dimension/envelope/body-count checks and interference |
@@ -62,6 +68,10 @@ All current native/control tools are assigned to at least one group. Related
 groups intentionally overlap on imports and interference. The general prompt
 does not include the replay plate's dimensions or favor a particular generator.
 Axis and lattice-representation guidance is added only when its group is loaded.
+
+September 6 adds general reference-based measurement and placement; see
+[design dependency interface](design-dependency-interface.md) for current capabilities
+and the bounded evaluation. The limitations below describe the earlier review.
 
 ## What this does not generalize
 

@@ -40,11 +40,10 @@ CAPTURE_WIDTH = 1100
 CAPTURE_HEIGHT = 825
 
 def _load_brief() -> str:
-    """The shared agent brief, read from AGENTS.md.
+    """MCP design guidance and generated source map from AGENTS.md.
 
-    One file rather than a copy per surface: the MCP instructions, the studio's
-    system prompt, and Codex's own AGENTS.md pickup all resolve to the same
-    text, so guidance cannot drift between clients.
+    Studio uses the compact agent_runtime prompt; both surfaces share the
+    client design-state implementation and the native geometry tools.
     """
     try:
         # AGENTS.md plus the generated source-map index. The index is what
@@ -121,7 +120,7 @@ def handle_tools_list(_: dict) -> dict:
             "description": spec["description"],
             "inputSchema": spec["input_schema"],
             "annotations": {
-                "readOnlyHint": not spec["mutating"],
+                "readOnlyHint": not spec["mutating"] and spec["name"] not in {"update_design_state", "highlight_selected_faces"},
                 "destructiveHint": spec["mutating"],
             },
         })

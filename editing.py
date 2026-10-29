@@ -40,11 +40,16 @@ def resolve(design, key):
     return found[0]
 
 
+def component_name(entity):
+    owner = getattr(entity, "parentComponent", None) or getattr(entity, "component", None)
+    return owner.name if owner is not None else None
+
+
 def row(design, entity):
     timeline = getattr(entity, "timelineObject", None)
     out = {"ref": ref(design, entity), "name": entity.name,
            "type": entity.objectType.split("::")[-1],
-           "component": entity.parentComponent.name,
+           "component": component_name(entity),
            "timeline_index": timeline.index if timeline else None}
     for source, target in (("isVisible", "visible"), ("isSuppressed", "suppressed"),
                            ("healthState", "health"), ("errorOrWarningMessage", "health_message")):
@@ -74,7 +79,7 @@ def tree(design, component=None):
     for i in range(design.timeline.count):
         entity = design.timeline.item(i).entity
         if entity is None: continue
-        if component and entity.parentComponent.name != component: continue
+        if component and component_name(entity) != component: continue
         rows.append(row(design, entity))
     return {"entries": rows, "timeline_count": design.timeline.count,
             "marker_position": design.timeline.markerPosition,

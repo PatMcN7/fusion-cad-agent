@@ -21,7 +21,6 @@ from typing import Any
 
 from .base import Emit, Provider, ProviderError, ToolCall, ToolResult, ToolSpec, Turn, truncate
 
-MAX_TOKENS = 16000
 
 # Gemini rejects JSON Schema keywords it does not implement.
 ALLOWED_SCHEMA_KEYS = {"type", "description", "enum", "items", "properties", "required"}
@@ -115,15 +114,15 @@ class GeminiProvider(Provider):
         if parts:
             self.contents.append(self._types.Content(role="user", parts=parts))
 
-        captures = [r for r in results if r.image_b64]
+        captures = [r for r in results if r.image_blocks()]
         if captures:
             image_parts = [self._part_text(
                 "Viewport after " + ", ".join(r.name for r in captures) + ":")]
             for result in captures:
-                image_parts.append(self._types.Part.from_bytes(
-                    data=base64.b64decode(result.image_b64),
-                    mime_type=result.image_media_type,
-                ))
+                for img in result.image_blocks():
+                    image_parts.append(self._part_text(img.get("label",result.name)))
+                    image_parts.append(self._types.Part.from_bytes(
+                        data=base64.b64decode(img["data"]), mime_type=img["media_type"]))
             self.contents.append(
                 self._types.Content(role="user", parts=image_parts))
 
@@ -136,7 +135,6 @@ class GeminiProvider(Provider):
 
         config = self._types.GenerateContentConfig(
             system_instruction=system,
-            max_output_tokens=MAX_TOKENS,
             tools=[self._types.Tool(function_declarations=declarations)],
         )
 
@@ -179,9 +177,9 @@ class GeminiProvider(Provider):
             self.contents.append(
                 self._types.Content(role="model", parts=collected))
 
-        stop = "tool_use" if tool_calls else (
+        stop = (
             "length" if "MAX_TOKENS" in finish.upper() else
-            "refusal" if "SAFETY" in finish.upper() else "end")
+            "refusal" if "SAFETY" in finish.upper() else "tool_use" if tool_calls else "end")
         return Turn(text="".join(text_parts), tool_calls=tool_calls, stop_reason=stop)
 
     def check(self) -> str:

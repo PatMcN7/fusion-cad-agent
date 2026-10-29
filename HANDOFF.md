@@ -5,6 +5,44 @@ starting point; this update and `PLAN.md` supersede their status claims.
 
 ## Current implementation update
 
+- Fusion Studio now has a native docked palette (`fusion_ui.py`) and a panel-first
+  UI: full-width chat, a fixed composer, separate history/settings views, and a
+  dedicated capture/scratchpad editor. The UI uses local assets with no CDN.
+  Drawing drafts and message attachments persist in IndexedDB per chat.
+- The redesigned page is served from `studio/static/index.html`. Browser checks
+  in `studio/tests/ui_smoke.cjs` cover 320–1000 px widths, capture, drawing,
+  resizing, draft reload, history, and flattened image submission with mocked
+  APIs. Run with `FUSION_PLAYWRIGHT_MODULE` pointing to an installed Playwright
+  package; optional `FUSION_UI_BROWSER` selects an existing Chromium executable.
+  Native palette visibility and URL were checked live; screenshots were reviewed
+  in Chromium, so Fusion's embedded browser still needs user visual feedback.
+- Run activity is now separate from collapsed transcript details: current phase,
+  elapsed time, tool count, last activity, repeated-call and quiet-period warnings.
+  Reopened busy chats poll and render progress before completion. Browser checks
+  cover that path and stop acknowledgement. Older runs without a stored start
+  time show "Watching" time rather than inventing total elapsed time.
+  The 2026-09-05 sidebar drivebase run `0e8505aa7f59` was stopped after repeated
+  successful document/file listings without geometry construction. The UI flags
+  repetition. The runtime now also warns after two unchanged successful reads
+  and stops after three; intervening mutations reset those observations and
+  operation-status polling is exempt.
+- Submitted prompts and flattened images now have an independent IndexedDB copy
+  (`sent:<chat>:<timestamp>`) before the composer draft is cleared. This applies
+  to future submissions. The older run's three sent sketches were not retained:
+  its external IndexedDB blob files were already gone; browser records recovered
+  only partial drawing drafts. The exact 2095-character prompt was placed in a
+  fresh draft `1e7a77784785`, without sending, awaiting reattachment of the images.
+- The file-search loop's concrete cause was a bad enum: `list_files.pattern`
+  and `run_tests.pattern` incorrectly accepted only `isogrid`/`hex`. Both now
+  accept filename globs; lattice-pattern enums remain restricted. The fixed
+  schema was loaded live, and GLM found the exact WCP-1702 STEP file and ended
+  its read-only test. See `docs/file-search-loop-fix.md` for validation.
+- Studio was restarted to activate the repetition guard and reasoning-history
+  preservation. Earlier chat logs were exported to the agent transcript folder
+  `runtime-restart-20260905/`. Fresh draft `4e971bbf6cb0` contains the exact latest
+  2095-character request and three retained images; hashes match the submitted
+  images. The full drivebase build has not been rerun after this fix.
+
 - Baseline and protocol-v4 changes are committed (`021096f`, `2441dd9`,
   `9724291`). There are now bounded complexity checks and durable operation IDs.
 - The next interface iteration fixes explicit argument types, introduces native
@@ -345,3 +383,131 @@ and 5× the price). Where a benchmark did not exist, OpenRouter's
 - **The owner reads the output critically and is usually right.** Two model
   recommendations and one session classification made here were wrong and were
   corrected after being challenged. Check claims against data before stating them.
+
+## September 6: design dependencies, evidence and general spatial tools
+
+Implemented the user's requested system-thinking changes. Current details and
+limits: `docs/design-dependency-interface.md`.
+
+- Compact general dependency guidance in Studio prompt and MCP AGENTS brief;
+  targeted intermediate captures allowed. No FRC workflow is hardcoded.
+- Shared `design_state.py` and client-local `update_design_state`; evidence refs,
+  dependency validation, stale/blocked statuses, pinned Studio prompt, bounded
+  disk snapshots. Known chat URLs restore their design records with fresh model
+  context after restart; provider-native history is not restored. MCP state is
+  per process, and existing MCP processes need reconnecting.
+- New `spatial.py` / `spatial_contracts.py`: inspect_geometry, measure_geometry,
+  verify_relationship, place_component, extrude_between_faces. Native schemas
+  are explicit. Placement is top-level only, copies share geometry; existing
+  grounding requires explicit release_grounding. Referenced extrusion accepts
+  parallel planar face sections. No general-purpose tube construction added.
+- Sidebar design card shows requirements/unknowns/assumptions and current action;
+  correction button focuses a draft correction. Existing drawing flow retained.
+- Fixed construction-plane feature inspection (`component`, not parentComponent).
+- Validation: 262 core + 113 Studio tests; browser smoke passes; native acceptance
+  script passes including rotated/transformed face measurements. Original active
+  document restored. Separate unsaved validation documents remain open.
+- Six fresh GLM simulated trials (three simple fixtures, two prompt variants)
+  succeeded in both variants; no proven efficiency/correctness improvement.
+  New variant used more output tokens (1165 vs 876). Do not claim full drivebase
+  competence based on these trials. Artifacts: benchmarks/runs/2026-09-06-design-dependencies/.
+- Studio restarted with these changes. Idle public chat histories archived under
+  agent_home()/transcripts/design-update-20260906/. Fresh sidebar draft:
+  79efbe484067, restored from saved submission 1e7a77784785 with 2095 text characters
+  and three images. Native browser blob verified matching hashes 5b0b553467,
+  9dceba6432, a1399b52e5. No automatic send or full drivebase attempt.
+- Native panel refresh hook was temporary and removed from tools.py after use.
+  Most recent Studio exec session: 39689. No commit made.
+
+## September 6: exact user-selected face attachments
+
+- Select faces with Fusion's normal selection, click **Faces** in Studio, add
+  optional labels, then send. Highlight buttons reselect the exact faces. Multiple
+  captures accumulate up to 12 faces; selecting a body never guesses its faces.
+- `face_selection.py` retains document-bound handles with native face tokens and
+  exact occurrence identity. Handles survive tool-module hot reload, but add-in
+  restart, deleted geometry or ambiguous token resolution requires reselection.
+- `get_selected_faces` is the 13th initial Studio tool. The `selection` group also
+  exposes `resolve_selected_faces` and `highlight_selected_faces`; MCP exposes all
+  three. Exact `face_ref` selectors work in the general spatial tools and joint
+  face arguments. This does not add arbitrary sketch/cut-on-face modeling.
+- Studio resolves every attachment before invoking the model, rejects stale or
+  wrong-document references, and uses fresh native metadata. Labels carry user
+  intent, not verified geometry. Drafts and submitted history retain face labels
+  and references; rejected submissions restore the draft.
+- Validation: 269 core + 118 Studio tests pass; browser smoke covers capture,
+  labels, deduplication, recovery, rejection, highlighting and 12 faces in narrow
+  panels. Live Fusion acceptance selected existing faces, resolved/measured exact
+  instances, highlighted them, ignored whole-body selection, and restored the
+  user's original selection without changing geometry. Helper:
+  `scripts/validate_face_selection.py`; result `/tmp/fusion-picked-faces-native.json`.
+- Studio restarted only after the prior run completed; completed public histories
+  archived under agent_home()/transcripts/face-selection-update-20260906/.
+  Current server exec session: 32150. Sidebar remains on chat 79efbe484067 with
+  fresh model context after restart; no prompt automatically sent. Native health
+  confirms the panel is visible without UI installation errors. Browser layout
+  was checked in the harness, not through embedded Fusion pixel inspection.
+- Live HTTP stale-attachment test rejected an expired handle before recording a
+  message or calling the model. Temporary validation/refresh hooks removed from
+  tools.py. No commit made.
+
+- User requested a fresh rerun after face selection. Started sidebar chat
+  `dd515b5a65d8` with GLM 5.3 Flash and the exact latest 2332-character prompt
+  from session-20260906-185750-fe28b70d.jsonl, including the modules-first
+  instruction, plus all three sketches restored from native IndexedDB submission
+  history for 79efbe484067. No face attachments existed in that submission.
+  Server confirms a fresh model context, three image blocks, 13 initial tools
+  and an active run. Do not confuse launch verification with a finished CAD test.
+  Temporary one-shot replay/navigation hooks were removed immediately afterward.
+  Input provenance: /tmp/fusion-face-rerun-source.json.
+
+## September 6: repair after the stalled module inspection
+
+- Removed Studio's 2048/4096 response budgets and 80-step ceiling. Successful
+  repeated reads and consecutive failures warn without terminating the model.
+  Repeated identical failed calls still return corrective errors without running
+  the backend again; the model remains able to change its approach. User Stop,
+  genuine provider refusal and transport errors remain distinct.
+- OpenAI/OpenRouter and Gemini requests omit output-token caps. Anthropic's
+  required max_tokens uses its model metadata maximum. Provider truncation
+  automatically continues with history; calls from an incomplete response are
+  explicitly marked unexecuted before continuation. No blind mutation replay.
+- inspect_geometry pages through exact child occurrences and direct bodies
+  together. Empty wrapper components expose descendants and a next-step hint;
+  body rows include face counts. Existing body selectors return exact faces.
+- Images go directly to vision-capable workers, including every requested view
+  (previously one image field could overwrite earlier views). Named image blocks
+  round-trip through OpenAI, Anthropic and Gemini. Descriptions are fallback for
+  text-only workers. OpenRouter uses catalogue image capability when available.
+- Studio-local request_face_selection is always discoverable (14 initial tools).
+  It asks a specific question/reason/surface list, emits a visible attachment
+  card, and yields for user input. Later calls in the same batch are returned as
+  unexecuted. User replies use existing exact face attachment validation.
+- Pinned instructions require actual face measurements; an unresolved critical
+  interface should trigger a concrete user-selection question, not speculation.
+- Streaming log records copy emitted data and coalesce reasoning fragments,
+  preserving readable history instead of evicting user messages per token.
+- Tests: 271 core and 126 Studio tests pass;
+  browser smoke passes including face-request rendering and attachment action.
+  Native validation followed the imported wrapper into its 53 child components,
+  then a body with 267 faces, retrieving exact occurrence-bound face selectors.
+  No geometry changed. Evidence: /tmp/fusion-harness-navigation-validation.json.
+
+- Activated the fixes in Studio server exec session 35089 after verifying every
+  prior chat was idle and archiving public logs under
+  agent_home()/transcripts/harness-repair-20260906/. Native panel refreshed to
+  ba0a001790eb with fresh model context and restored design-state record.
+  Live bootstrap confirms connected bridge, ready GLM worker, image capability,
+  and effective vision mode direct. Temporary refresh hook removed. No full
+  drivebase rerun or automatic prompt submission during this repair.
+
+- Added `codex:gpt-6-astra` / **Codex · Astra (subscription)** to the picker.
+  Uses the existing Codex CLI backend with `--model gpt-6-astra` for both new
+  and resumed sessions. No API adapter or credential handling added. Verified
+  command construction, 126 Studio tests and live bootstrap preset visibility.
+  Sidebar refreshed; server exec session 60015. No model run or default switch.
+
+- At user request, preloaded Codex Astra into fresh sidebar chat 7af31e2d9d63.
+  Backend readiness confirms gpt-6-astra via Codex subscription/MCP. Restored
+  latest full drivebase prompt and three sketches using retry_session=dd515b5a65d8.
+  Draft only: no send, no model execution. Temporary handoff hook removed.

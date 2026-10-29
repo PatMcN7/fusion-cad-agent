@@ -51,11 +51,27 @@ CM_PER_INCH = 2.54
 
 APP: Any = None
 UI: Any = None
+STUDIO_UI_ERROR: str | None = None
 
 
 def bind(app: Any, ui: Any) -> None:
-    global APP, UI
+    global APP, UI, STUDIO_UI_ERROR
     APP, UI = app, ui
+    # Keep palette event handlers outside the reloaded tool module. This also
+    # installs the UI in an already running add-in on its next bridge request.
+    if hasattr(ui, "palettes"):
+        try:
+            import fusion_ui
+            fusion_ui.install(app, ui)
+            # Open once when this UI module is first activated, including in
+            # a running add-in. Later geometry reloads respect a closed panel.
+            if not getattr(fusion_ui, "_opened_from_bridge", False):
+                fusion_ui.show()
+                fusion_ui._opened_from_bridge = True
+        except Exception:
+            import traceback
+            STUDIO_UI_ERROR = traceback.format_exc()
+            app.log("Fusion Studio UI: " + STUDIO_UI_ERROR)
 
 
 # --------------------------------------------------------------- helpers ----
@@ -193,11 +209,23 @@ def _clear_root(root) -> dict[str, list[str]]:
 # ------------------------------------------------------------- read-only ----
 
 def health(_: dict[str, Any]) -> dict[str, Any]:
+    studio_ui = {"error": STUDIO_UI_ERROR}
+    if hasattr(UI, "commandDefinitions"):
+        studio_ui["command_registered"] = bool(UI.commandDefinitions.itemById("FusionCadAgentShowStudio"))
+        panel = UI.allToolbarPanels.itemById("SolidScriptsAddinsPanel")
+        studio_ui["toolbar_panel_found"] = bool(panel)
+        studio_ui["button_registered"] = bool(panel and panel.controls.itemById("FusionCadAgentShowStudio"))
+        studio_ui["toolbar_panel_name"] = panel.name if panel else None
+        palette = UI.palettes.itemById("FusionCadAgentStudio")
+        studio_ui["palette_exists"] = bool(palette)
+        studio_ui["palette_visible"] = bool(palette and palette.isVisible)
+        studio_ui["palette_url"] = palette.htmlFileURL if palette else None
     return {
         "bridge": "fusion-cad-agent",
         "fusion_version": APP.version,
         "main_thread_responding": True,
         "active_document": _document_metadata(),
+        "studio_ui": studio_ui,
     }
 
 
@@ -2231,6 +2259,7 @@ def design_digest() -> dict[str, Any]:
 
 def _echo_state(handler):
     def wrapped(arguments: dict[str, Any]) -> dict[str, Any]:
+        source_change = handler.__name__ in {"write_file", "patch_file"}
         additive = handler.__name__ in {"lattice_pockets", "router_fillet_pocket_corners", "extrude_polygons", "cut_polygons"}
         design, start = None, None
         if additive:
@@ -2245,7 +2274,8 @@ def _echo_state(handler):
             with tool_scope(handler.__name__):
                 result = handler(arguments)
         except Exception as exc:
-            editing.invalidate_undo()
+            if not source_change:
+                editing.invalidate_undo()
             setattr(exc, "design", design_digest())
             raise
         if isinstance(result, dict):
@@ -2261,7 +2291,7 @@ def _echo_state(handler):
                     editing.invalidate_undo()
                     result["undo_available"] = False
                     result["undo_unavailable_reason"] = str(exc)
-            elif handler.__name__ != "undo_last":
+            elif handler.__name__ != "undo_last" and not source_change:
                 editing.invalidate_undo()
         return result
     wrapped.__name__ = getattr(handler, "__name__", "wrapped")
@@ -2317,6 +2347,14 @@ def _face_for_joint(occurrence, spec: dict[str, Any], field: str):
     """
     if not isinstance(spec, dict):
         raise ArgumentError(f"{field} must be an object describing a face")
+    if spec.get("face_ref"):
+        if set(spec) != {"face_ref"}:
+            raise ArgumentError(f"{field}: use face_ref alone, without heuristic face filters")
+        import face_selection
+        face = face_selection.resolve(_active_design(), spec["face_ref"])
+        if face.assemblyContext != occurrence:
+            raise ArgumentError(f"{field}: this selected face belongs to a different component instance")
+        return face
 
     bodies = list(pick.bodies(occurrence.component))
     if not bodies:
@@ -2710,7 +2748,7 @@ TOOLS["list_files"] = {
     "mutating": False,
     "arguments": {
         "directory": "Directory to list. Omit to see the readable roots.",
-        "pattern": "Glob, e.g. '*.step'. Default '*'.",
+        "pattern": "Filename glob, e.g. '*.step' or '*WCP-1702*'. Default '*'. Accepts any valid filename glob.",
         "recursive": "Search subdirectories. Default false.",
         "limit": "Maximum entries. Default 200.",
     },
@@ -2997,7 +3035,7 @@ TOOLS["write_file"] = {
                     "hot-reload, so a new tool is callable on the next call. "
                     "Python that does not parse is refused, and the previous "
                     "contents are backed up."),
-    "mutating": False,
+    "mutating": True,
     "arguments": {
         "path": "Path in this repository, absolute or relative to its root.",
         "content": "Full new contents of the file.",
@@ -3010,7 +3048,7 @@ TOOLS["run_tests"] = {
     "arguments": {"pattern": "Test file glob. Default 'test*.py'."},
 }
 
-HANDLERS["write_file"] = write_file
+HANDLERS["write_file"] = _echo_state(write_file)
 HANDLERS["run_tests"] = run_tests
 
 
@@ -3086,6 +3124,17 @@ def _register(name, handler, description, args, required=(), mutating=False):
     HANDLERS[name] = _echo_state(handler) if mutating else handler
 
 
+import importlib as _centered_hole_importlib
+from recipes import centered_face_hole as _centered_face_hole
+_centered_hole_importlib.reload(_centered_face_hole)
+_register(
+    'cut_centered_face_hole', _centered_face_hole.run,
+    'Cut an exact circular through hole centered on an axis-aligned rectangular planar face of a root solid. Uses the exact attached face and restricts the cut to its body.',
+    {'face_ref': {'type': 'string'}, 'radius': {'type': 'string'}, 'name': {'type': 'string'}},
+    required=('face_ref', 'radius'), mutating=True,
+)
+
+
 _str = lambda description: {"type": "string", "description": description}
 _register("create_document", create_document,
           "Create and activate a new empty, unsaved Fusion design document. Creates no bodies or sketches. Returns its document ID and design state; use modeling/import tools afterward.",
@@ -3105,7 +3154,54 @@ _register("patch_file", patch_file, "Apply one exact source replacement guarded 
           {"path": _str("Repository-relative file"), "old_text": _str("Unique exact text to replace"),
            "new_text": _str("Replacement text"), "expected_sha256": _str("sha256 from read_file"),
            "run_tests": {"type": "boolean"}, "test_pattern": _str("Focused test filename glob")},
-          ["path", "old_text", "new_text", "expected_sha256"])
+          ["path", "old_text", "new_text", "expected_sha256"], True)
+
+# General spatial tools support nested motor-face anchors and reference selection
+# and root-frame math together.
+import spatial_contracts
+_importlib.reload(spatial_contracts)
+import spatial
+_importlib.reload(spatial)
+for _name, (_mutating, _description, _schema) in spatial.SPECS.items():
+    def _spatial_handler(arguments, _function=getattr(spatial, _name)):
+        return _function(_active_design(), APP, arguments)
+    _spatial_handler.__name__ = _name
+    TOOLS[_name] = {"description": _description, "mutating": _mutating, "input_schema": _schema, "arguments": _schema["properties"]}
+    HANDLERS[_name] = _echo_state(_spatial_handler) if _mutating else _spatial_handler
+
+# Exact user selections are retained outside hot-reloaded geometry handlers.
+import face_selection
+_importlib.reload(face_selection)
+_face_refs_schema = {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 12}
+for _name, _description, _arguments in (
+    ("get_selected_faces", "Read the faces the user selected in Fusion. Returns compact document-bound face_ref selectors with exact occurrence context and geometry. Ignores non-face selections; never guesses a face from a selected body.", {}),
+    ("resolve_selected_faces", "Revalidate attached face handles and return current geometry. Rejects deleted, expired or wrong-document faces without choosing a replacement.", {"refs": _face_refs_schema}),
+    ("highlight_selected_faces", "Highlight exact attached faces in the Fusion viewport at the user's request. Replaces UI selection; does not change geometry or move the camera. Validates all handles before changing selection.", {"refs": _face_refs_schema}),
+):
+    def _selection_handler(arguments, _function=getattr(face_selection, _name)):
+        return _function(_active_design(), UI, arguments)
+    _selection_handler.__name__ = _name
+    _register(_name, _selection_handler, _description, _arguments, list(_arguments))
+
+# Task-specific drivebase and installed-rivet recipes; explicit schemas, no document switching.
+from recipes import frc_drivebase as _frc_recipe
+_importlib.reload(_frc_recipe)
+for _name, (_mutating, _function, _arguments) in _frc_recipe.SPECS.items():
+    def _frc_handler(arguments, _function_name=_function.__name__):
+        _importlib.reload(_frc_recipe)
+        return getattr(_frc_recipe, _function_name)(_active_design(), APP, arguments)
+    _frc_handler.__name__ = _name
+    _register(_name, _frc_handler, 'WCP-1702 drivebase task recipe.', _arguments, list(_arguments), _mutating)
+
+# Task-specific arm structure, support hardware, native repair and fit checks.
+from recipes import frc_arm_layout as _arm_recipe
+_importlib.reload(_arm_recipe)
+for _name, (_mutating, _function, _arguments) in _arm_recipe.SPECS.items():
+    def _arm_handler(arguments, _function_name=_function.__name__):
+        _importlib.reload(_arm_recipe)
+        return getattr(_arm_recipe, _function_name)(_active_design(), APP, arguments)
+    _arm_handler.__name__ = _name
+    _register(_name, _arm_handler, 'Provisional 6328-style arm layout.', _arguments, list(_arguments), _mutating)
 
 # Reload data/contracts at the capability boundary; clients refresh after source writes.
 _importlib.reload(tool_contracts)

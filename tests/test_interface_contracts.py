@@ -15,6 +15,14 @@ from tool_contracts import validate
 
 
 class Contracts(unittest.TestCase):
+    def test_file_and_test_globs_are_not_lattice_enums(self):
+        for name,patterns in {'list_files':['*.step','*WCP-1702*','*.pdf'],
+                              'run_tests':['test_*.py','test_interface_contracts.py']}.items():
+            schema=tools.TOOLS[name]['input_schema']
+            self.assertNotIn('enum',schema['properties']['pattern'])
+            for pattern in patterns: validate({'pattern':pattern},schema)
+        self.assertEqual(tools.TOOLS['lattice_pockets']['input_schema']['properties']['pattern']['enum'],['isogrid','hex'])
+
     def test_untouched_unsaved_document_digest_is_not_marked_saved(self):
         from types import SimpleNamespace
         document=SimpleNamespace(name='Untitled',isSaved=False,isModified=False)
@@ -26,10 +34,12 @@ class Contracts(unittest.TestCase):
 
     def test_general_initial_surface_and_complete_group_discovery(self):
         from studio import agent_runtime
-        from bridge_client import CONTROL_TOOLS
-        registry={**tools.TOOLS,**CONTROL_TOOLS}
+        from bridge_client import CONTROL_TOOLS, DESIGN_TOOLS
+        registry={**tools.TOOLS,**CONTROL_TOOLS,**DESIGN_TOOLS}
         initial=agent_runtime.select(registry,{'core'})
-        self.assertEqual(len(initial),11)
+        self.assertEqual(len(initial),14)
+        self.assertIn("get_selected_faces", initial)
+        self.assertIn("update_design_state", initial)
         self.assertIn('create_document',initial)
         self.assertIn('design_summary',initial)
         self.assertFalse(set(initial)&{'create_test_box','lattice_pockets','edit_lattice','create_tube_frame'})

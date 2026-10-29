@@ -18,6 +18,9 @@ from .base import (  # noqa: F401
 # Presets are starting points, not a whitelist -- any model id the backend
 # accepts can be typed in. base_url is what turns "openai" into a local runner.
 PRESETS: dict[str, dict[str, Any]] = {
+    "hybrid-dev:gpt-6-astra": {"provider": "hybrid_dev", "label": "Astra + Jev · tool building (source edits)"},
+    "hybrid:gpt-6-astra":  {"provider": "hybrid",    "label": "Astra planner + Jev decisions (experimental)"},
+    "jev-1.13.0":          {"provider": "jev",       "label": "Jev · native CAD workflows (experimental)"},
     "claude-opus-5":       {"provider": "anthropic", "label": "Claude Opus 5"},
     "claude-sonnet-5":     {"provider": "anthropic", "label": "Claude Sonnet 5"},
     "claude-haiku-4-5":    {"provider": "anthropic", "label": "Claude Haiku 4.5"},
@@ -27,6 +30,7 @@ PRESETS: dict[str, dict[str, Any]] = {
     "gpt-5.4-mini":        {"provider": "openai",    "label": "GPT-5.4 mini"},
     "gemini-2.5-pro":      {"provider": "gemini",    "label": "Gemini 2.5 Pro"},
     "gemini-2.5-flash":    {"provider": "gemini",    "label": "Gemini 2.5 Flash"},
+    "codex:gpt-6-astra":   {"provider": "codex",     "label": "Codex · Astra (subscription)"},
     "codex:gpt-5.6-sol":   {"provider": "codex",     "label": "Codex · GPT-5.6 Sol (subscription)"},
     "codex:gpt-5.6-terra": {"provider": "codex",     "label": "Codex · GPT-5.6 Terra (subscription)"},
     # OpenRouter: one key, per-call billing, no subscription.
@@ -52,6 +56,9 @@ PRESETS: dict[str, dict[str, Any]] = {
 }
 
 ENV_KEYS = {
+    "hybrid": "TYPESAFE_API_KEY",
+    "hybrid_dev": "TYPESAFE_API_KEY",
+    "jev": "TYPESAFE_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
     "gemini": "GOOGLE_API_KEY",
@@ -77,6 +84,12 @@ def build(provider: str, model: str, *, base_url: str | None = None,
     # only catch ProviderError, so normalize everything here -- a leaked
     # TypeError surfaces as a stack trace mid-stream instead of a clear message.
     try:
+        if provider in {"hybrid", "hybrid_dev"}:
+            from .hybrid_provider import HybridProvider
+            return HybridProvider(model.split(":", 1)[-1], allow_development=provider == "hybrid_dev", **kwargs)
+        if provider == "jev":
+            from .jev_provider import JevProvider
+            return JevProvider(model, **kwargs)
         if provider == "anthropic":
             from .anthropic_provider import AnthropicProvider
             return AnthropicProvider(model, **kwargs)
@@ -122,6 +135,19 @@ def available() -> dict[str, dict[str, Any]]:
         }
     # Codex needs no SDK and no key -- only the CLI, which carries its own auth.
     found = bool(shutil.which("codex"))
+    report["jev"] = {
+        "sdk_installed": True,  # Uses the standard-library HTTP client.
+        "env_var": "TYPESAFE_API_KEY",
+        "key_present": bool(os.environ.get("TYPESAFE_API_KEY")),
+        "install": "No additional SDK required",
+    }
+    report["hybrid"] = {
+        "sdk_installed": found,
+        "env_var": "TYPESAFE_API_KEY",
+        "key_present": bool(os.environ.get("TYPESAFE_API_KEY")),
+        "install": "Install/update Codex CLI and log in; Jev uses TYPESAFE_API_KEY",
+    }
+    report["hybrid_dev"] = dict(report["hybrid"])
     report["codex"] = {
         "sdk_installed": found,
         "env_var": "",

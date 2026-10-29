@@ -880,6 +880,10 @@
           "extreme": {
             "type": "string",
             "description": "Outermost in a direction, e.g. '-x'."
+          },
+          "face_ref": {
+            "type": "string",
+            "description": "Exact user-picked face handle. Use alone; it must belong to the corresponding occurrence."
           }
         }
       },
@@ -919,6 +923,10 @@
           "extreme": {
             "type": "string",
             "description": "Outermost in a direction, e.g. '-x'."
+          },
+          "face_ref": {
+            "type": "string",
+            "description": "Exact user-picked face handle. Use alone; it must belong to the corresponding occurrence."
           }
         }
       },
@@ -989,11 +997,7 @@
       },
       "pattern": {
         "type": "string",
-        "description": "Glob, e.g. '*.step'. Default '*'.",
-        "enum": [
-          "isogrid",
-          "hex"
-        ]
+        "description": "Glob, e.g. '*.step'. Default '*'."
       },
       "recursive": {
         "type": "boolean",
@@ -1165,11 +1169,7 @@
     "properties": {
       "pattern": {
         "type": "string",
-        "description": "Test file glob. Default 'test*.py'.",
-        "enum": [
-          "isogrid",
-          "hex"
-        ]
+        "description": "Test file glob. Default 'test*.py'."
       }
     },
     "required": [],

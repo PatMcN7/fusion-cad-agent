@@ -26,7 +26,6 @@ from typing import Any
 
 from .base import Emit, Provider, ProviderError, ToolCall, ToolResult, ToolSpec, Turn, truncate
 
-MAX_TOKENS = 16000
 
 STOP_REASONS = {
     "stop": "end",
@@ -109,7 +108,7 @@ class OpenAIProvider(Provider):
                 "tool_call_id": result.id,
                 "content": result.as_text(),
             })
-            if result.image_b64:
+            if result.image_blocks():
                 images.append((result.name, result))
 
         # Tool messages carry no images, so the captures follow as a user turn.
@@ -119,9 +118,11 @@ class OpenAIProvider(Provider):
                 "text": "Viewport after "
                         + ", ".join(name for name, _ in images) + ":",
             }]
-            for _, result in images:
-                content.append({"type": "image_url", "image_url": {
-                    "url": f"data:{result.image_media_type};base64,{result.image_b64}"}})
+            for name, result in images:
+                for img in result.image_blocks():
+                    content.append({"type":"text","text":img.get("label",name)})
+                    content.append({"type":"image_url","image_url":{
+                        "url":f"data:{img['media_type']};base64,{img['data']}"}})
             self.messages.append({"role": "user", "content": content})
 
     def stream(self, system: str, tools: list[ToolSpec], emit: Emit) -> Turn:
@@ -134,13 +135,12 @@ class OpenAIProvider(Provider):
             },
         } for tool in tools]
 
-        payload = [{"role": "system", "content": system}] + self.messages
         from agent_runtime import compact_messages
         compact_messages(self.messages)
+        payload = [{"role": "system", "content": system}] + self.messages
         try:
             stream = self._create(
                 model=self.model,
-                max_tokens=getattr(self, "max_output_tokens", MAX_TOKENS),
                 messages=payload,
                 tools=definitions or None,
                 stream=True,
@@ -149,6 +149,8 @@ class OpenAIProvider(Provider):
             raise ProviderError(self._explain(exc)) from exc
 
         text_parts: list[str] = []
+        reasoning_parts: dict[str, list[str]] = {}
+        reasoning_details: list[dict[str, Any]] = []
         # Tool call fragments arrive indexed and out of order; accumulate.
         partial: dict[int, dict[str, str]] = {}
         finish = "stop"
@@ -168,6 +170,15 @@ class OpenAIProvider(Provider):
                 delta = choice.delta
                 if choice.finish_reason:
                     finish = choice.finish_reason
+
+                # Tool use resumes this assistant response. Preserve the router's
+                # reasoning sequence rather than only displaying it in the UI.
+                for field in ("reasoning", "reasoning_content"):
+                    value = getattr(delta, field, None)
+                    if isinstance(value, str):
+                        reasoning_parts.setdefault(field, []).append(value)
+                for detail in (getattr(delta, "reasoning_details", None) or []):
+                    reasoning_details.append(detail.model_dump() if hasattr(detail, "model_dump") else dict(detail))
 
                 # Reasoning models expose their trace under a vendor-specific
                 # field; surface it the same way as Anthropic thinking.
@@ -222,13 +233,19 @@ class OpenAIProvider(Provider):
                                      "content": "".join(text_parts) or None}
         if native_calls:
             assistant["tool_calls"] = native_calls
+        if reasoning_details:
+            assistant["reasoning_details"] = reasoning_details
+        else:
+            # Plaintext-only providers use one of these equivalent fields.
+            for field, parts in reasoning_parts.items():
+                assistant[field] = "".join(parts)
         self.messages.append(assistant)
 
         return Turn(
             text="".join(text_parts),
             tool_calls=tool_calls,
             stop_reason=STOP_REASONS.get(finish, "other")
-            if not tool_calls else "tool_use",
+            if finish in {"length", "content_filter"} or not tool_calls else "tool_use",
             usage=usage,
         )
 

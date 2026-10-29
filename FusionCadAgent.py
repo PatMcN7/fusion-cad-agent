@@ -476,6 +476,8 @@ def stop(context: Any) -> None:
     del context
     global _server, _server_thread, _custom_event, _event_handler
     try:
+        if "fusion_ui" in sys.modules:
+            sys.modules["fusion_ui"].stop()
         if _server:
             _server.shutdown()
             _server.server_close()

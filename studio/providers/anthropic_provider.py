@@ -18,7 +18,6 @@ from typing import Any
 
 from .base import Emit, Provider, ProviderError, ToolCall, ToolResult, ToolSpec, Turn, truncate
 
-MAX_TOKENS = 32000
 
 STOP_REASONS = {
     "end_turn": "end",
@@ -80,13 +79,13 @@ class AnthropicProvider(Provider):
             content: list[dict[str, Any]] = [
                 {"type": "text", "text": result.as_text()}
             ]
-            if result.image_b64:
+            for img in result.image_blocks():
                 content.append({"type": "text",
-                                "text": "Viewport after this operation:"})
+                                "text": img.get("label","Image from this operation:")})
                 content.append({"type": "image", "source": {
                     "type": "base64",
-                    "media_type": result.image_media_type,
-                    "data": result.image_b64,
+                    "media_type": img["media_type"],
+                    "data": img["data"],
                 }})
             blocks.append({
                 "type": "tool_result",
@@ -104,9 +103,15 @@ class AnthropicProvider(Provider):
             "input_schema": tool.json_schema(),
         } for tool in tools]
 
+        # Anthropic requires max_tokens. Use the model's advertised maximum,
+        # not a harness budget; the loop continues any provider truncation.
+        maximum = getattr(self, "_model_output_maximum", None)
+        if maximum is None:
+            self.check()
+            maximum = self._model_output_maximum
         request: dict[str, Any] = {
             "model": self.model,
-            "max_tokens": MAX_TOKENS,
+            "max_tokens": maximum,
             # Cache the system prompt: it is byte-stable across every turn,
             # and the tool list renders ahead of it.
             "system": [{"type": "text", "text": system,
@@ -166,4 +171,8 @@ class AnthropicProvider(Provider):
             info = self.client.models.retrieve(self.model)
         except Exception as exc:
             raise ProviderError(f"{exc.__class__.__name__}: {exc}") from exc
+        maximum = getattr(info, "max_tokens", None)
+        if not isinstance(maximum, int) or maximum <= 0:
+            raise ProviderError("Anthropic did not report this model's output maximum; update the SDK/model metadata before running.")
+        self._model_output_maximum = maximum
         return f"anthropic / {info.id} ({info.max_input_tokens:,} ctx)"

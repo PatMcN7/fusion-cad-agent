@@ -138,8 +138,11 @@ class Recorder:
             out["result"] = trimmed
         return out
 
-    def user_message(self, text: str, image_count: int = 0) -> None:
-        self._write("user", {"text": text, "images": image_count})
+    def user_message(self, text: str, image_count: int = 0, faces: list | None = None) -> None:
+        data = {"text": text, "images": image_count}
+        if faces:
+            data["faces"] = faces
+        self._write("user", data)
 
     def close(self, **summary: Any) -> None:
         self._flush_streamed()

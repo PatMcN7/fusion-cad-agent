@@ -5,6 +5,56 @@ tools operate on whatever document is open on the person's screen right now.
 This file is the repository and MCP brief. Studio starts with the compact
 `studio/agent_runtime.py` prompt and loads source guidance only when needed.
 
+## Design dependencies
+
+For multi-part or open-ended design, distinguish fixed inputs, required relationships,
+and dimensions that must be derived. Use `update_design_state` to keep a concise
+record of requirements, unknowns, explicit assumptions, dependencies and next action.
+Resolve the unknowns that determine geometry before creating dependent features.
+Ground critical dimensions in user requirements, referenced geometry, measurements,
+or explicit assumptions. Never silently substitute a plausible dimension.
+Choose each action to resolve an important unknown or implement an established
+relationship. Check the relationship before building further geometry that depends
+on it. A successful operation does not establish that the design meets user intent.
+
+The design-state tool is client-local and shared by Studio and MCP. No arguments
+reads it; upserts replace entries by id. Cite returned `evidence_ref` values for
+established derived facts/checks. Old geometry evidence is conservatively marked
+stale after edits and must be rechecked when another action depends on it. Simple
+edits need no formal record. Keep entries concise; do not repeatedly narrate plans.
+
+Load the measurement or assembly group in Studio: `inspect_geometry` returns exact
+selectors and paged faces in the root coordinate frame. `measure_geometry` measures
+closest distances or parallel-plane separation. `verify_relationship` checks a named
+relation. `place_component` moves/copies top-level components by explicit anchors;
+it is a placement snapshot, not an associative joint. `extrude_between_faces`
+creates a new body from a planar face section up to another parallel face with a
+native referenced extent. These operations do not identify mounting intent for you.
+
+## User-selected faces
+
+Users can select faces in Fusion and attach them to Studio messages with **Faces**.
+Each attachment carries an exact `face_ref` selector and optional user label. Use
+that selector with geometry inspection, measurements, relationship checks, placement
+or referenced extrusion. `create_joint` also accepts `face_ref` in its face arguments;
+the face must belong to the corresponding component instance. Do not replace an
+attached face with a heuristic match. Labels describe intent, not verified geometry.
+If a face is stale, deleted or in another document, resolve that problem or ask the
+user to select it again. `get_selected_faces` reads current Fusion selection when
+the user refers to selected geometry without an attachment. `highlight_selected_faces`
+changes viewport selection only and is for user-requested visual identification.
+
+When a consequential interface is still ambiguous after focused inspection, ask
+which specific face supports/stops/mates the intended part, and explain what
+measurement depends on it. Studio exposes `request_face_selection` for this:
+provide the question, reason, and recognizable surfaces to pick. The sidebar
+waits for the user's reply with an attachment button. Other MCP clients should
+ask the same concrete question in chat. Do not infer mounting surfaces from
+bounding boxes or keep speculating instead of requesting the missing reference.
+Occurrence inspection includes immediate children and direct bodies in a single
+page. Follow exact returned child selectors into nested assemblies, then inspect
+a body's face selectors and measure the required relationship.
+
 ## Orient before you build
 
 Use `create_document` with no arguments to create and activate an empty unsaved
@@ -63,7 +113,8 @@ the original operation's state, not necessarily the current document.
 - **Do not confirm a plan before executing it.** If you can name the tool and
   the arguments, call it.
 - **Do not ask which dimension was meant** when a competent engineer would
-  simply pick one. Pick it, say in one line that you picked it, keep going.
+  simply pick one. Record routine choices as explicit assumptions. Resolve critical
+  interfaces from evidence; ask when an ambiguity would invalidate dependent work.
 - **Retry from known state.** For a preflight rejection, correct the named
   argument and retry. After a modeling failure, use recovery and state evidence
   to repair the affected stage. Do not repeat a timed-out mutation blindly.
@@ -72,7 +123,9 @@ Ask a question only when guessing wrong would waste real time and the answer
 is not recoverable — which arrangement of four modules, not what fillet radius
 to use. Ask everything at once, then build.
 
-**Look at what you made** once the geometry is there, not before each step.
+**Look at what you made.** Use a targeted intermediate capture when it resolves
+orientation, interface selection or layout uncertainty before dependent modeling.
+Capture the completed result as well; avoid automatic captures after every step.
 `capture_viewport` with `views: ["current"], fit: false` shows the person's exact framing.
 Use `clean: true` to temporarily hide sketches, then restore their visibility;
 use a top view for planar layout and describe the expected completed stage.
@@ -93,7 +146,8 @@ Two categories matter differently:
   means a lattice's rows are not interlocking. Surface these; do not bury them.
 
 A green block means the implemented checks passed. It does **not** mean the
-part is what was asked for — only the capture can tell you that. An isogrid
+part is what was asked for. Compare the intended relationships with measured
+geometry and the visual layout. An isogrid
 generator once passed every geometric check while producing stacked rows of
 triangles with no shared vertices, which is not an isogrid at all.
 

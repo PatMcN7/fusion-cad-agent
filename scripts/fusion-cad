@@ -1,0 +1,53 @@
+#!/bin/zsh
+# Resolve symlinks so this also works from ~/.local/bin.
+set -euo pipefail
+repo="${0:A:h:h}"
+python="$repo/studio/.venv/bin/python"
+[[ -x "$python" ]] || python="$(command -v python3)"
+command="${1:-start}"
+(( $# == 0 )) || shift
+case "$command" in
+  -h|--help|help)
+    print 'Usage: fusion-cad [start|doctor|cli|mcp|install] [arguments]
+
+  start       Open Fusion and run Studio (default). Ctrl-C stops Studio.
+              Open the localhost URL printed by Studio in your browser.
+              Accepts studio/run.sh options, e.g. --with-all.
+  doctor      Check the add-in link, Python, and live Fusion bridge.
+  cli ...     Direct CAD commands; try: fusion-cad cli --help
+  mcp         Run the stdio MCP server for an external agent.
+  install     Register the Fusion add-in (never replaces an existing path).
+
+Model settings are loaded from studio/.env or your environment.
+Fusion must run its FusionCadAgent add-in; enable Run on Startup there.
+No CAD operations are performed just by starting Studio.'
+    ;;
+  start)
+    print "Project: $repo"
+    print 'In Fusion: Utilities > Scripts and Add-Ins > Add-Ins > FusionCadAgent > Run.'
+    print 'Keep this terminal open. Use the localhost URL below; Ctrl-C stops Studio.'
+    open -a 'Autodesk Fusion' || print -u2 'Could not open Fusion automatically; please open it manually.'
+    exec "$repo/studio/run.sh" "$@"
+    ;;
+  doctor)
+    print "Project: $repo"
+    "$python" --version
+    link="$HOME/Library/Application Support/Autodesk/FusionAddins/FusionCadAgent"
+    if [[ -L "$link" && "${link:A}" == "$repo" ]]; then
+      print 'Add-in link: OK'
+    else
+      print -u2 "Add-in link: missing or incorrect ($link). Run fusion-cad install."
+      exit 1
+    fi
+    exec "$python" -c 'import sys; sys.path.insert(0, sys.argv[1]); import bridge_client; bridge_client.REQUEST_TIMEOUT = 5
+try:
+    result = bridge_client.Bridge()._request("GET", "/v1/health")
+    import json; print(json.dumps(result, indent=2)); sys.exit(0 if result.get("ok") else 1)
+except (RuntimeError, OSError, ValueError) as exc:
+    print(str(exc), file=sys.stderr); sys.exit(1)' "$repo"
+    ;;
+  cli) exec "$python" "$repo/fusion_cli.py" "$@" ;;
+  mcp) exec "$python" "$repo/mcp_server.py" "$@" ;;
+  install) exec "$repo/scripts/install_macos.sh" "$@" ;;
+  *) print -u2 "Unknown command: $command. Try fusion-cad --help."; exit 2 ;;
+esac

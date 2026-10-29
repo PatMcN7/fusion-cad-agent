@@ -11,6 +11,85 @@ the verified bridge, and shows you what it made.
 
 Then open <http://127.0.0.1:8765>. The Fusion add-in must be running.
 
+## Hybrid: Astra plans, code executes, Jev decides (experimental)
+
+Select **Astra planner + Jev decisions (experimental)** after restarting Studio.
+Requires a recent authenticated Codex CLI; add `TYPESAFE_API_KEY` to `studio/.env`
+for bounded Jev choices. Or launch with:
+
+```sh
+STUDIO_PROVIDER=hybrid STUDIO_MODEL=gpt-6-astra ./studio/run.sh
+```
+
+Unlike direct Codex mode, Astra only returns a structured plan. Studio executes
+established native steps without another model call. Jev is invoked only for an
+explicit bounded semantic choice; critical interface ambiguity goes to the user.
+Native failures return actual observations to Astra for bounded replanning.
+No automatic screenshots or vision fallback; no unrestricted Codex tool loop.
+
+Try: `Create a centered 100 x 60 x 5 mm plate in this design and verify its dimensions.`
+Use a disposable design first. This mode composes native CAD tools rather than
+matching the request to the Jev-only workflow menu. It does not automatically
+write/install new tool source.
+
+### When a native tool is missing
+
+Choose **Astra + Jev · tool building (source edits)** to explicitly permit Astra
+to develop missing native capabilities. It can inspect repository source, create
+recipes/tests, hash-patch existing geometry modules, register a new tool, and
+proceed directly with CAD in the same run. Tests and completion checks are
+optional in this preset; source writes default to skipping tests. Untested or
+unchecked work is reported, not blocked. It does not get
+an unrestricted Codex shell. Standard hybrid mode remains source-read/write-disabled.
+
+This is **trusted code-development permission**, not a sandbox: generated Python
+and tests run on your machine/in Fusion. Backups and syntax/hash checks prevent
+some mistakes, but code can still be wrong. Test on disposable designs first.
+
+```sh
+STUDIO_PROVIDER=hybrid_dev STUDIO_MODEL=gpt-6-astra ./studio/run.sh
+```
+
+For example: attach the intended planar face, then ask for a true native circular
+through-hole and say to implement/register/test the missing tool if necessary.
+Do not substitute a many-sided polygon for an exact circular hole silently.
+
+See [architecture, plan language, safeguards, and testing](../docs/hybrid-harness.md).
+
+## Jev fast path (experimental)
+
+Set `TYPESAFE_API_KEY` in `studio/.env`, restart Studio, and choose **Jev · native
+CAD workflows (experimental)** in the model picker. No extra SDK is needed.
+Alternatively launch with `STUDIO_PROVIDER=jev STUDIO_MODEL=jev-1.13.0 ./studio/run.sh`.
+
+Ask one self-contained task. Most workflows no longer require face selection:
+
+- “Inspect this design” / “Show the feature tree” / “List assembly components.”
+- “Check for interference” / “List open documents” / “Create a new empty design.”
+- 'Create a 100 x 60 x 5 mm plate named "Plate" in this design.'
+- “Create a 2 x 3 x 1/8 in box in a new document.”
+- 'Inspect body "Plate"' or 'Inspect occurrence "Frame:1/Module:2"'.
+- 'Assign 6061-T6 aluminum to body "Plate".'
+- 'Convert body "Plate" to a component' / “Convert all root bodies into components.”
+- “Undo the last supported agent feature change.”
+
+For face-specific workflows, select faces in Fusion or attach them with **Faces**:
+
+- “Inspect the selected faces.”
+- “Measure the closest distance between these two faces.”
+- “Measure the perpendicular plane separation between these two faces.”
+- Label two attached faces **Start** and **End**, then: “Create a new body by
+  extruding Start's entire face section up to End.”
+
+Jev chooses a workflow and literal argument candidates in one API request; code
+normalizes units, constructs rectangular geometry, and uses the normal bridge.
+Box/plate dimensions must be explicit (shared-unit triples and fractions work).
+Default placement is centered XY at Z=0, extruded +Z. Named targets must be quoted. No Astra fallback, automatic screenshots, or
+vision calls. Image attachments are rejected. Unsupported or uncertain requests
+stop without editing; this is not an open-ended CAD/code-generating agent.
+
+See [architecture, safety limits, and validation](../docs/jev-harness.md).
+
 ## The loop
 
 ```
@@ -36,10 +115,13 @@ Then open <http://127.0.0.1:8765>. The Fusion add-in must be running.
 ## Model backends
 
 The agent loop is written against a neutral protocol (`providers/base.py`) and
-never branches on vendor. Three adapters:
+uses provider capabilities to select execution and image handling:
 
 | Adapter | Reaches | Auth | Runs the tool loop |
 |---|---|---|---|
+| `hybrid_dev` | Astra + Jev with trusted native-tool development | Codex login + `TYPESAFE_API_KEY` for choices | this harness; source edits and tests explicitly enabled |
+| `hybrid` | Astra planning via Codex + explicit Jev decisions | Codex login + `TYPESAFE_API_KEY` for choices | this harness (structured plan executor) |
+| `jev` | TypeSafe Jev, native CAD workflows | `TYPESAFE_API_KEY` | this harness (deterministic workflow) |
 | `codex` | GPT-5.x via the Codex CLI | **your ChatGPT subscription** | Codex, via MCP |
 | `anthropic` | Claude models | `ANTHROPIC_API_KEY` | this harness |
 | `openai` | OpenAI **and any OpenAI-compatible server** | `OPENAI_API_KEY` | this harness |
