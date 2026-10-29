@@ -255,7 +255,7 @@ Escalate in this order, and say which rung you are on.
    `read_file(symbol=...)` or line ranges. Use `search_files` for focused search
    and `patch_file` with the returned SHA-256 for a small exact replacement.
    Use `write_file` for new files or intentional whole-file replacements.
-   Register handlers with explicit JSON Schema in `tool_schemas.json` or an
+   Register handlers with explicit JSON Schema in `fusion_cad/tool_schemas.json` or an
    `input_schema`; never infer argument types from English descriptions.
    Read the returned activation requirement. Studio and shared client changes
    require restarting that client; registered geometry reloads on the next call.
@@ -263,13 +263,13 @@ Escalate in this order, and say which rung you are on.
    Python that does not parse is refused before it is written, and the
    previous contents are backed up. `run_tests` checks you did not break a
    generator something else depends on — run it after any edit to a shared
-   module. `FusionCadAgent.py`, `execution.py`, and `errors.py` are not writable
+   module. `FusionCadAgent.py`, `fusion_cad/execution.py`, and `fusion_cad/errors.py` are not writable
    through this tool: they own the bridge, operation journal, and stable error
    identities. Runtime changes require local development and an add-in reload.
 
    The geometry code hot-reloads:
-   `patterns.py`, `geom.py`, `assertions.py`, `pick.py`, `ops.py`,
-   `workspace.py`, `checkpoints.py` and `tools.py` are re-imported on the next
+   `fusion_cad/patterns.py`, `fusion_cad/geom.py`, `fusion_cad/assertions.py`, `fusion_cad/pick.py`, `fusion_cad/ops.py`,
+   `fusion_cad/workspace.py`, `fusion_cad/checkpoints.py` and `fusion_cad/tools.py` are re-imported on the next
    tool call, so a fix takes effect immediately with no restart.
    `FusionCadAgent.py` is the add-in shell and does need a Fusion restart —
    avoid changing it.
@@ -290,18 +290,18 @@ Do not claim a part is finished because a tool returned `ok`. Look at it first.
 
 ```
 FusionCadAgent.py   add-in shell: HTTP server, custom event, token (restart to change)
-bridge_client.py    shared client + tool-schema generation
+fusion_cad/bridge_client.py    shared client + tool-schema generation
 mcp_server.py       MCP server -- exposes the tools to any MCP client
-errors.py           exception hierarchy, deliberately never hot-reloaded
+fusion_cad/errors.py           exception hierarchy, deliberately never hot-reloaded
 
-patterns.py         lattice and hole-position math (pure, hot-reloads)
-geom.py             2D computational geometry (pure)
-mechanics.py        closed-form section properties, beam cases, DFM rules (pure)
-assertions.py       the check framework and the checks
-pick.py             geometry selection: pick.faces(body).planar().extreme("+z")
-ops.py              modelling primitives wrapping one Fusion call each
-checkpoints.py      timeline checkpoint / rollback
-tools.py            the tools themselves, composed from pick + ops
+fusion_cad/patterns.py         lattice and hole-position math (pure, hot-reloads)
+fusion_cad/geom.py             2D computational geometry (pure)
+fusion_cad/mechanics.py        closed-form section properties, beam cases, DFM rules (pure)
+fusion_cad/assertions.py       the check framework and the checks
+fusion_cad/pick.py             geometry selection: pick.faces(body).planar().extreme("+z")
+fusion_cad/ops.py              modelling primitives wrapping one Fusion call each
+fusion_cad/checkpoints.py      timeline checkpoint / rollback
+fusion_cad/tools.py            the tools themselves, composed from pick + ops
 
 studio/             web UI: chat + markup on viewport captures
 tests/              run these before trusting a change

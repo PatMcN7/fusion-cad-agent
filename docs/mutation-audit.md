@@ -35,7 +35,7 @@ It remains outside the CAD mutation registry flag; it is not covered by the CAD
 operation journal. `fetch_url`/PDF rendering create local artifacts, and test
 execution can have filesystem effects. None is a CAD transaction.
 
-The agent write fence now also excludes `execution.py`, which owns journal and
+The agent write fence now also excludes `fusion_cad/execution.py`, which owns journal and
 document-binding state and is not hot-reloaded while the bridge runs.
 
 Next recovery work: implement previous-value restoration for the first native

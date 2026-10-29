@@ -14,7 +14,7 @@ intermediate captures are permitted to resolve orientation and interface selecti
 Simple edits do not require a formal plan or user approval. The low effort default
 remains; this change does not raise reasoning effort globally.
 
-`update_design_state` is a client-local tool in `bridge_client.py`, used by both
+`update_design_state` is a client-local tool in `fusion_cad/bridge_client.py`, used by both
 Studio and MCP. It records up to 16 concise entries (10000 characters total), with
 id, statement, kind, status, dependencies, evidence references and source. Updates
 are atomic; cyclic dependencies, unknown evidence references and established derived

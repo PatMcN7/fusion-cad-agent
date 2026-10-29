@@ -4,9 +4,9 @@ from types import SimpleNamespace as NS
 from unittest.mock import patch
 from test_registry import _install_adsk_stub
 _install_adsk_stub()
-import spatial
-from errors import ArgumentError
-from tool_contracts import check_contracts, validate
+from fusion_cad import spatial
+from fusion_cad.errors import ArgumentError
+from fusion_cad.tool_contracts import check_contracts, validate
 
 
 def collection(values):

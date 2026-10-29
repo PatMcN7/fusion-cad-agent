@@ -22,7 +22,7 @@ Four kinds, none of which require you to trust the author:
 import math
 import unittest
 
-import mechanics as mech
+from fusion_cad import mechanics as mech
 
 
 class Coefficients(unittest.TestCase):

@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import Mock
 
-from bridge_client import Bridge, BridgeError, tool_schemas
+from fusion_cad.bridge_client import Bridge, BridgeError, tool_schemas
 
 
 class ClientTests(unittest.TestCase):

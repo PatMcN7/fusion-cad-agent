@@ -39,7 +39,7 @@ def guard(tool, arguments, root=REPO):
         return
     if tool not in SOURCE_WRITES:
         return
-    allowed = (len(relative.parts) == 1 and path.name in GEOMETRY_FILES or
+    allowed = (len(relative.parts) == 2 and relative.parts[0] == "fusion_cad" and path.name in GEOMETRY_FILES or
                len(relative.parts) == 2 and relative.parts[0] == "recipes" and path.suffix == ".py" or
                len(relative.parts) == 2 and relative.parts[0] == "tests" and path.name.startswith("test_") and path.suffix == ".py")
     if not allowed:

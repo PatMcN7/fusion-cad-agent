@@ -20,7 +20,7 @@ def spec(args=None,mutating=False):
 
 class DesignContext(unittest.TestCase):
     def test_dependency_record_is_pinned_on_every_provider_turn(self):
-        from design_state import DesignState
+        from fusion_cad.design_state import DesignState
         state=DesignState()
         state.update({'upsert':[{'id':'gap','kind':'unknown','status':'open','statement':'Mount spacing must be measured'}],'next_action':'Inspect mounting faces'})
         provider=SimpleNamespace(stream=Mock(side_effect=[Turn(tool_calls=[ToolCall('read','list_documents',{})]),Turn()]),add_user=Mock(),add_tool_results=Mock())
@@ -33,7 +33,7 @@ class DesignContext(unittest.TestCase):
         self.assertTrue(any(k=='design_state' for k,d in events))
 
     def test_reopen_design_record_after_server_restart_and_delete(self):
-        from design_state import DesignState
+        from fusion_cad.design_state import DesignState
         with tempfile.TemporaryDirectory() as tmp, patch.object(server,'agent_home',return_value=Path(tmp)), patch.object(server,'TRANSCRIPTS_OFF',True):
             identity='abcdef123456'
             state=DesignState(Path(tmp)/'design-states'/(identity+'.json'))

@@ -15,7 +15,7 @@ import providers
 import server
 from providers import Cancelled, ProviderError, ToolResult
 from providers.jev_provider import JevProvider, WORKFLOWS, DIRECTIONS, choice
-from spatial_contracts import SPECS
+from fusion_cad.spatial_contracts import SPECS
 
 FACES = [{"ref": "picked_a", "tag": "A", "label": "Start", "token": "private-native-token"},
          {"ref": "picked_b", "tag": "B", "label": "End"}]
@@ -43,7 +43,7 @@ def registry():
     }.items():
         result[name] = {"mutating": False, "description": name,
                         "input_schema": {"type": "object", "properties": props}}
-    schemas = json.loads((Path(__file__).resolve().parents[2] / 'tool_schemas.json').read_text())
+    schemas = json.loads((Path(__file__).resolve().parents[2] / 'fusion_cad' / 'tool_schemas.json').read_text())
     mutations = {'create_test_box', 'extrude_polygons', 'create_document', 'set_6061_material', 'bodies_to_components', 'undo_last'}
     for name in ('design_summary', 'list_joint_candidates', 'check_interference', 'list_documents', *mutations):
         result[name] = {'description': name, 'mutating': name in mutations, 'input_schema': schemas[name]}

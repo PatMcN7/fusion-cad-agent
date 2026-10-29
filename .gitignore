@@ -11,3 +11,7 @@ studio/.venv/
 # Native benchmark artifacts and per-run evidence stay local.
 benchmarks/artifacts/
 benchmarks/runs/
+
+# Downloaded vendor assets and obsolete source snapshots are not source code.
+references/
+backup_v*/

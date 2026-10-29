@@ -7,8 +7,8 @@ import math
 import re
 from dataclasses import dataclass
 
-from errors import ArgumentError
-from tool_contracts import validate
+from fusion_cad.errors import ArgumentError
+from fusion_cad.tool_contracts import validate
 
 
 def obj(properties):

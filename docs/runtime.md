@@ -154,4 +154,4 @@ already exist. Solid bellypans skip unused lattice generation.
 
 The fake event queue tests exercise the real shell dispatch methods, journal,
 and timeout lifetime logic. They do not emulate Fusion's kernel or prove geometry
-restoration. Do not advance the live gates in `PLAN.md` using those tests alone.
+restoration. The live validation cases above require tests against Fusion itself.

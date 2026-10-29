@@ -3,10 +3,10 @@
 import math
 import unittest
 
-import assertions
-import catalog
-import geom
-import patterns
+from fusion_cad import assertions
+from fusion_cad import catalog
+from fusion_cad import geom
+from fusion_cad import patterns
 
 
 class FilletPolygon(unittest.TestCase):

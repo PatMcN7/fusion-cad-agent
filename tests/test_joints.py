@@ -8,14 +8,14 @@ arithmetic that turns that number into a decision.
 
 import unittest
 
-import assertions
+from fusion_cad import assertions
 
 from test_registry import _install_adsk_stub
 
 _install_adsk_stub()
 
-import ops  # noqa: E402
-import tools  # noqa: E402
+from fusion_cad import ops  # noqa: E402
+from fusion_cad import tools  # noqa: E402
 
 
 class ResolveFlip(unittest.TestCase):

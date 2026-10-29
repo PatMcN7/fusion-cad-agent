@@ -4,8 +4,8 @@ Exercise actual UI selection, exact handles, component proxies and measurement,
 then restore the user's selection. Do not leave the handler registered afterward.
 """
 import adsk.fusion
-import face_selection
-import spatial
+from fusion_cad import face_selection
+from fusion_cad import spatial
 
 
 def run_in_fusion(app, ui):

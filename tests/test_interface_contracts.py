@@ -7,11 +7,11 @@ from unittest.mock import Mock, patch
 
 from test_registry import _install_adsk_stub
 _install_adsk_stub()
-import tools
-import workspace
-from bridge_client import Bridge, tool_schemas
-from errors import ArgumentError
-from tool_contracts import validate
+from fusion_cad import tools
+from fusion_cad import workspace
+from fusion_cad.bridge_client import Bridge, tool_schemas
+from fusion_cad.errors import ArgumentError
+from fusion_cad.tool_contracts import validate
 
 
 class Contracts(unittest.TestCase):
@@ -34,7 +34,7 @@ class Contracts(unittest.TestCase):
 
     def test_general_initial_surface_and_complete_group_discovery(self):
         from studio import agent_runtime
-        from bridge_client import CONTROL_TOOLS, DESIGN_TOOLS
+        from fusion_cad.bridge_client import CONTROL_TOOLS, DESIGN_TOOLS
         registry={**tools.TOOLS,**CONTROL_TOOLS,**DESIGN_TOOLS}
         initial=agent_runtime.select(registry,{'core'})
         self.assertEqual(len(initial),14)
@@ -145,4 +145,4 @@ class SourceTools(unittest.TestCase):
     def test_repository_relative_read_works_independently_of_cwd(self):
         # Real repo relative paths must use the repo, not Fusion's process cwd.
         with patch.object(workspace,'allowed_roots',return_value=[Path(tools.__file__).parent]):
-            self.assertEqual(workspace.resolve('tools.py'),Path(tools.__file__))
+            self.assertEqual(workspace.resolve('fusion_cad/tools.py'),Path(tools.__file__))

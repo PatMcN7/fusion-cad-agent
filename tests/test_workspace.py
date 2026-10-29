@@ -11,8 +11,8 @@ import pathlib
 import tempfile
 import unittest
 
-import workspace
-from errors import ArgumentError
+from fusion_cad import workspace
+from fusion_cad.errors import ArgumentError
 
 
 class Fence(unittest.TestCase):
@@ -78,7 +78,7 @@ class Secrets(unittest.TestCase):
                 self.assertTrue(workspace.is_secret(self.root / name), name)
 
     def test_ordinary_files_are_not_mistaken_for_secrets(self):
-        for name in ("part.step", "notes.txt", "patterns.py", "drawing.pdf"):
+        for name in ("part.step", "notes.txt", "fusion_cad/patterns.py", "drawing.pdf"):
             with self.subTest(name=name):
                 self.assertFalse(workspace.is_secret(self.root / name), name)
 

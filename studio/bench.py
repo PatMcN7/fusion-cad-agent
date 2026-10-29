@@ -66,10 +66,10 @@ def _registry() -> list[ToolSpec]:
     """Real tool specs from the live bridge, or the static registry if Fusion
     is not running -- the probe should not require an open CAD session."""
     try:
-        import bridge_client
+        from fusion_cad import bridge_client
         registry = bridge_client.Bridge().registry()
     except Exception:
-        import tools
+        from fusion_cad import tools
         registry = tools.TOOLS
     specs = []
     for name, spec in sorted(registry.items()):
@@ -84,7 +84,7 @@ def _registry() -> list[ToolSpec]:
 
 
 def _brief() -> str:
-    import catalog
+    from fusion_cad import catalog
     return catalog.brief()
 
 

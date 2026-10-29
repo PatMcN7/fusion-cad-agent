@@ -59,4 +59,4 @@ Still untested live: lost transport responses, polling while the kernel is busy,
 queued cancellation, add-in restart with unfinished work, switching tabs during
 queued execution, and failures after parameter edits, deletion, or compound
 operations. Full geometry restoration, global reconciliation, document revision
-tracking, and save/reopen continuity remain open work in `PLAN.md`.
+tracking, and save/reopen continuity remain unimplemented or unverified.

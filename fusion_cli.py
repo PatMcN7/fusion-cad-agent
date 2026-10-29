@@ -10,7 +10,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from bridge_client import Bridge
+from fusion_cad.bridge_client import Bridge
 
 BRIDGE = Bridge()
 

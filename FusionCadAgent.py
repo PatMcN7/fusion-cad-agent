@@ -28,16 +28,16 @@ ADDIN_DIR = Path(__file__).resolve().parent
 if str(ADDIN_DIR) not in sys.path:
     sys.path.insert(0, str(ADDIN_DIR))
 
-import execution
+from fusion_cad import execution
 
 # Only reload the runtime when the add-in shell itself is loaded, never mid-call.
 importlib.reload(execution)
-import common as _common
+from fusion_cad import common as _common
 
 importlib.reload(_common)
 
-from errors import BridgeError, ProtocolError  # noqa: E402
-from common import (  # noqa: E402
+from fusion_cad.errors import BridgeError, ProtocolError  # noqa: E402
+from fusion_cad.common import (  # noqa: E402
     API_VERSION,
     DEFAULT_HOST,
     DEFAULT_PORT,
@@ -124,7 +124,7 @@ def _reload_if_changed() -> list[str]:
     """
     changed: list[str] = []
     for name in RELOADABLE:
-        path = ADDIN_DIR / f"{name}.py"
+        path = ADDIN_DIR / "fusion_cad" / f"{name}.py"
         try:
             mtime = path.stat().st_mtime
         except OSError:
@@ -137,25 +137,25 @@ def _reload_if_changed() -> list[str]:
         return []
 
     for name in RELOADABLE:
-        module = sys.modules.get(name)
+        module = sys.modules.get(f"fusion_cad.{name}")
         if module is None:
-            importlib.import_module(name)
+            importlib.import_module(f"fusion_cad.{name}")
         else:
             importlib.reload(module)
 
-    sys.modules["tools"].bind(_app, _ui)
+    sys.modules["fusion_cad.tools"].bind(_app, _ui)
     _log(f"Reloaded {', '.join(changed)}")
     return changed
 
 
 def _tools_module():
-    module = sys.modules.get("tools")
+    module = sys.modules.get("fusion_cad.tools")
     if module is None:
-        module = importlib.import_module("tools")
+        module = importlib.import_module("fusion_cad.tools")
         module.bind(_app, _ui)
         for name in RELOADABLE:
             try:
-                _module_mtimes[name] = (ADDIN_DIR / f"{name}.py").stat().st_mtime
+                _module_mtimes[name] = (ADDIN_DIR / "fusion_cad" / f"{name}.py").stat().st_mtime
             except OSError:
                 pass
     return module
@@ -459,12 +459,10 @@ def run(context: Any) -> None:
         _event_handler = ExecuteEventHandler()
         if not _custom_event.add(_event_handler):
             raise RuntimeError("Could not attach the Fusion custom-event handler")
-        for name in RELOADABLE:
-            sys.modules.pop(name, None)
         _module_mtimes.clear()
-        # Prime the cache here so the first request does not report every
-        # module as freshly reloaded.
-        _tools_module()
+        # Reload in dependency order without replacing package module identities.
+        # This also primes the cache before the first request.
+        _reload_if_changed()
         _start_server()
     except Exception:
         _log(traceback.format_exc())
@@ -476,8 +474,8 @@ def stop(context: Any) -> None:
     del context
     global _server, _server_thread, _custom_event, _event_handler
     try:
-        if "fusion_ui" in sys.modules:
-            sys.modules["fusion_ui"].stop()
+        if "fusion_cad.fusion_ui" in sys.modules:
+            sys.modules["fusion_cad.fusion_ui"].stop()
         if _server:
             _server.shutdown()
             _server.server_close()

@@ -18,7 +18,7 @@ from providers.hybrid_provider import HybridProvider
 
 def registry():
     tools=h.registry()
-    schemas=json.loads((Path(__file__).resolve().parents[2]/'tool_schemas.json').read_text())
+    schemas=json.loads((Path(__file__).resolve().parents[2]/'fusion_cad'/'tool_schemas.json').read_text())
     for name in ('read_file','write_file','run_tests'):
         tools[name]={'mutating':name=='write_file','description':name,'input_schema':schemas[name]}
     tools['patch_file']={'mutating':True,'description':'patch','input_schema':{
@@ -148,7 +148,7 @@ class Development(unittest.TestCase):
 
 class PathPolicy(unittest.TestCase):
     def test_source_writes_are_mutating_without_geometry_undo_side_effects(self):
-        source=(Path(__file__).resolve().parents[2]/'tools.py').read_text()
+        source=(Path(__file__).resolve().parents[2]/'fusion_cad/tools.py').read_text()
         tree=ast.parse(source)
         register=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_register')
         namespace={'TOOLS':{},'HANDLERS':{},'_echo_state':lambda handler:('wrapped',handler)}
@@ -163,7 +163,7 @@ class PathPolicy(unittest.TestCase):
                'editing':SimpleNamespace(invalidate_undo=invalidate)}
         exec(compile(ast.Module(body=[echo],type_ignores=[]),'echo','exec'),scope)
         for name in ('write_file','patch_file'):
-            def write(arguments): return {'path':'tools.py'}
+            def write(arguments): return {'path':'fusion_cad/tools.py'}
             write.__name__=name
             result=scope['_echo_state'](write)({})
             self.assertIn('design',result)
@@ -177,17 +177,18 @@ class PathPolicy(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             guard('write_file',{'path':'recipes/cut_round.py'},root)
-            (root/'tools.py').write_text('old')
-            guard('patch_file',{'path':'tools.py','expected_sha256':'a'*64},root)
+            (root/'fusion_cad').mkdir()
+            (root/'fusion_cad/tools.py').write_text('old')
+            guard('patch_file',{'path':'fusion_cad/tools.py','expected_sha256':'a'*64},root)
             with self.assertRaisesRegex(PlanError,'hash-guarded'):
-                guard('write_file',{'path':'tools.py'},root)
+                guard('write_file',{'path':'fusion_cad/tools.py'},root)
             with self.assertRaises(PlanError):
-                guard('patch_file',{'path':'tools.py','expected_sha256':'wrong'},root)
+                guard('patch_file',{'path':'fusion_cad/tools.py','expected_sha256':'wrong'},root)
 
     def test_runtime_security_files_traversal_and_symlinks_refused(self):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
             root=Path(directory)
-            for name in ('studio/server.py','FusionCadAgent.py','workspace.py','execution.py','bridge_client.py','.env','../escape.py'):
+            for name in ('studio/server.py','FusionCadAgent.py','fusion_cad/workspace.py','fusion_cad/execution.py','fusion_cad/bridge_client.py','.env','../escape.py'):
                 with self.subTest(name=name),self.assertRaises(PlanError):
                     guard('write_file',{'path':name},root)
             (root/'recipes').symlink_to(outside,target_is_directory=True)

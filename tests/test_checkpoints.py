@@ -3,7 +3,7 @@
 import unittest
 from types import SimpleNamespace
 
-from checkpoints import Checkpoint, operation, tool_scope
+from fusion_cad.checkpoints import Checkpoint, operation, tool_scope
 
 
 class Timeline:

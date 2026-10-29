@@ -63,8 +63,8 @@ Missing or stale completion checks are not reported as passing. Existing native
 argument/document validation and unknown-operation protection remain in force.
 New registered handlers are exposed without adding another hardcoded workflow.
 
-Source writes are restricted to geometry modules (`tools.py`, spatial modules,
-geometry/math/primitives helpers, `tool_schemas.json`), `recipes/*.py`, and
+Source writes are restricted to geometry modules (`fusion_cad/tools.py`, spatial modules,
+geometry/math/primitives helpers, `fusion_cad/tool_schemas.json`), `recipes/*.py`, and
 `tests/test_*.py`. Existing files require SHA-guarded `patch_file`; `write_file`
 is new files only. The Studio client, bridge runtime, workspace security code,
 credential/hidden files, and paths outside this repository are not editable

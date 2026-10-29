@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
-import editing
-from errors import ArgumentError
+from fusion_cad import editing
+from fusion_cad.errors import ArgumentError
 
 
 class Collection:

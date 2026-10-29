@@ -5,10 +5,10 @@ import os
 import unittest
 from unittest.mock import patch
 
-import complexity
-import geom
-import patterns
-from errors import ArgumentError
+from fusion_cad import complexity
+from fusion_cad import geom
+from fusion_cad import patterns
+from fusion_cad.errors import ArgumentError
 
 
 class ComplexityTests(unittest.TestCase):
@@ -71,7 +71,7 @@ class ComplexityTests(unittest.TestCase):
                     complexity.Limits.configured()
 
     def test_fillets_are_guarded_before_kernel_access(self):
-        import ops
+        from fusion_cad import ops
         from types import SimpleNamespace
         # ops imports adsk lazily. Registry tests install the inert module;
         # the guard itself needs only this explicit edge count.
@@ -83,7 +83,7 @@ class ComplexityTests(unittest.TestCase):
 
 class ToolPreflightTests(unittest.TestCase):
     def test_rounded_lattice_checks_original_junctions_and_final_clearances(self):
-        import tools
+        from fusion_cad import tools
         from types import SimpleNamespace
         box = SimpleNamespace(minPoint=SimpleNamespace(x=0, y=0, z=0),
                               maxPoint=SimpleNamespace(x=8 * 2.54, y=6 * 2.54, z=0.635))
@@ -113,7 +113,7 @@ class ToolPreflightTests(unittest.TestCase):
                 self.assertEqual(len(gap.call_args.args[1][0]), 12)
 
     def test_lattice_guard_runs_before_rounding_or_kernel_work(self):
-        import tools
+        from fusion_cad import tools
         from types import SimpleNamespace
         box = SimpleNamespace(minPoint=SimpleNamespace(x=0, y=0, z=0),
                               maxPoint=SimpleNamespace(x=30 * 2.54, y=30 * 2.54, z=0.3))

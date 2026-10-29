@@ -6,7 +6,7 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import face_attachments
-from errors import ArgumentError
+from fusion_cad.errors import ArgumentError
 
 
 class FaceMessages(unittest.TestCase):

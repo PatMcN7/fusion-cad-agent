@@ -9,8 +9,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-import execution
-from errors import ProtocolError
+from fusion_cad import execution
+from fusion_cad.errors import ProtocolError
 
 
 def request(identifier="test-operation", **changes):
@@ -144,6 +144,18 @@ class BridgeDispatchTests(unittest.TestCase):
     def pump(self):
         self.shell.ExecuteEventHandler().notify(SimpleNamespace(additionalInfo=self.events.pop(0)))
 
+    def test_package_reload_preserves_error_identity_and_finds_geometry(self):
+        from fusion_cad import errors, tools
+        error_class = errors.ArgumentError
+        self.shell._module_mtimes.clear()
+        changed = self.shell._reload_if_changed()
+        self.assertEqual(changed, list(self.shell.RELOADABLE))
+        self.assertIs(self.shell._tools_module(), tools)
+        self.assertIs(errors.ArgumentError, error_class)
+        self.assertEqual(self.shell._reload_if_changed(), [])
+        self.assertIn("cut_centered_face_hole", tools.TOOLS)
+        self.assertFalse(any(name.startswith("frc_arm_") for name in tools.TOOLS))
+
     def test_timeout_keeps_work_and_duplicate_does_not_enqueue_again(self):
         status, response = self.submit(request())
         self.assertEqual(status, 202)
@@ -186,7 +198,7 @@ class BridgeDispatchTests(unittest.TestCase):
         self.assertEqual(self.events, [])
 
     def test_failure_carries_recovery_into_durable_result(self):
-        from errors import ToolFailure
+        from fusion_cad.errors import ToolFailure
         failure = ToolFailure("bad cut")
         failure.recovery = {"status": "partial", "completed_stages": ["plate"]}
         failure.design = {"body_count": 2}

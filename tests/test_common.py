@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from common import ProtocolError, load_or_create_token, validate_request
+from fusion_cad.common import ProtocolError, load_or_create_token, validate_request
 
 REGISTRY = {
     "health": {"mutating": False},

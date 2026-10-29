@@ -33,7 +33,7 @@ class ReadLoopGuard:
 GROUPS = {
     "core": {"design_summary", "feature_tree", "inspect_entity", "capture_viewport",
              "create_document", "list_documents", "switch_document", "operation_status", "cancel_operation", "update_design_state", "get_selected_faces"},
-    "geometry": {"create_test_box", "extrude_polygons", "cut_polygons", "extrude_between_faces"},
+    "geometry": {"create_test_box", "extrude_polygons", "cut_polygons", "cut_centered_face_hole", "extrude_between_faces"},
     "editing": {"delete_entities", "delete_named_features", "undo_last"},
     "patterns": {"lattice_pockets", "edit_lattice", "router_fillet_pocket_corners"},
     "assembly": {"import_geometry", "bodies_to_components", "list_joint_candidates", "create_joint", "check_interference", "inspect_geometry", "measure_geometry", "place_component", "verify_relationship"},
@@ -46,7 +46,7 @@ GROUPS = {
     "source": {"read_file", "search_files", "patch_file", "write_file", "run_tests"},
     "documents": {"active_document", "save_document"},
     "diagnostics": {"health", "inspect_commands"},
-    "drivebase_recipe": {"frc_drivebase_survey", "frc_drivebase_frame", "frc_drivebase_drill_pan", "frc_drivebase_validate", "frc_drivebase_rivets", "frc_drivebase_hardware_check", "frc_arm_layout", "frc_arm_motor_survey", "frc_arm_structure", "frc_arm_fit_check", "frc_arm_repair_y_extents", "frc_arm_support_details", "frc_arm_clearance_repair", "frc_arm_pose_check", "frc_arm_joints", "frc_arm_motor_brackets", "frc_arm_elbow_outboard"},
+    "drivebase_recipe": {"frc_drivebase_survey", "frc_drivebase_frame", "frc_drivebase_drill_pan", "frc_drivebase_validate", "frc_drivebase_rivets", "frc_drivebase_hardware_check"},
     "all": set(),
 }
 
@@ -163,7 +163,7 @@ def select(registry, groups):
 
 
 def source_brief():
-    return "Source editing: read_file supports symbol/line ranges and returns sha256. patch_file replaces unique text using that hash. Read AGENTS.md for repository conventions before shared-module changes. Source maps can be read from catalog.py. Geometry handlers refresh after writes; bridge_client and studio modules require restarting that client. Tests must cover the actual changed contract."
+    return "Source editing: read_file supports symbol/line ranges and returns sha256. patch_file replaces unique text using that hash. Read AGENTS.md for repository conventions before shared-module changes. Source maps can be read from fusion_cad/catalog.py. Geometry handlers refresh after writes; bridge_client and studio modules require restarting that client. Tests must cover the actual changed contract."
 
 
 def compact_messages(messages, keep_recent=12):

@@ -17,7 +17,7 @@ from providers import Cancelled, ProviderError
 from providers.astra_planner import AstraPlanner
 from providers.hybrid_provider import HybridProvider
 from hybrid_plan import PlanError, Values, failed_checks, validate_plan
-from design_state import DesignState, TOOLS as DESIGN_TOOLS
+from fusion_cad.design_state import DesignState, TOOLS as DESIGN_TOOLS
 
 
 def step(identity, tool='', payload=None, kind='tool', critical=False):
@@ -44,7 +44,7 @@ def check(identity='verify'):
 
 def registry():
     result = {**helpers.registry(), **DESIGN_TOOLS}
-    schemas = json.loads((Path(__file__).resolve().parents[2] / 'tool_schemas.json').read_text())
+    schemas = json.loads((Path(__file__).resolve().parents[2] / 'fusion_cad' / 'tool_schemas.json').read_text())
     result['verify_spec'] = {'description':'Verify design', 'mutating': False, 'input_schema': schemas['verify_spec']}
     result['capture_viewport'] = {'description':'Capture viewport', 'mutating':False, 'input_schema':schemas['capture_viewport']}
     return result

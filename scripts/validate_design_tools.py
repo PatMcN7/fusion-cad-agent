@@ -9,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from bridge_client import Bridge
+from fusion_cad.bridge_client import Bridge
 
 
 def main():

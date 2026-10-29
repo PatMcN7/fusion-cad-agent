@@ -184,7 +184,7 @@ the GLM measurements do not establish their live reliability or performance.
 ## Design notes
 
 **Tool schemas are explicit.** The bridge's `/v1/tools` registry publishes
-`tool_schemas.json` contracts, including required fields and array item types.
+`fusion_cad/tool_schemas.json` contracts, including required fields and array item types.
 Both client and native dispatch validate them before execution. Studio begins
 with 11 general inspection, document, operation-control and discovery tools,
 including `create_document` to create and activate an empty unsaved design.

@@ -9,7 +9,7 @@ trap in different clothes.
 import math
 import unittest
 
-import mechanics as mech
+from fusion_cad import mechanics as mech
 
 
 class SectionProperties(unittest.TestCase):

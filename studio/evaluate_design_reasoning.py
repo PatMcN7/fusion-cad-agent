@@ -16,9 +16,9 @@ import envfile
 import providers
 import agent_runtime
 from providers import ToolSpec, ToolResult
-from design_state import DesignState, TOOLS, obj, TEXT
-from spatial_contracts import SPECS
-from tool_contracts import validate
+from fusion_cad.design_state import DesignState, TOOLS, obj, TEXT
+from fusion_cad.spatial_contracts import SPECS
+from fusion_cad.tool_contracts import validate
 
 CASES=[
  {'id':'bearing_spacer','prompt':'Make a solid spacer between the two already positioned bearing blocks. Its section should match the selected mounting pad; its length must fit the actual available gap. The fixture has no other bodies.','gap':3.7},

@@ -39,7 +39,7 @@ No CAD operations are performed just by starting Studio.'
       print -u2 "Add-in link: missing or incorrect ($link). Run fusion-cad install."
       exit 1
     fi
-    exec "$python" -c 'import sys; sys.path.insert(0, sys.argv[1]); import bridge_client; bridge_client.REQUEST_TIMEOUT = 5
+    exec "$python" -c 'import sys; sys.path.insert(0, sys.argv[1]); from fusion_cad import bridge_client; bridge_client.REQUEST_TIMEOUT = 5
 try:
     result = bridge_client.Bridge()._request("GET", "/v1/health")
     import json; print(json.dumps(result, indent=2)); sys.exit(0 if result.get("ok") else 1)

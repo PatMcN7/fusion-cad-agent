@@ -9,11 +9,11 @@ def center_and_extent(low, high, body_low, body_high):
 def run(args):
     import adsk.core
     import adsk.fusion
-    import ops
-    import pick
-    import spatial
-    from checkpoints import operation
-    from errors import ArgumentError, ToolFailure
+    from fusion_cad import ops
+    from fusion_cad import pick
+    from fusion_cad import spatial
+    from fusion_cad.checkpoints import operation
+    from fusion_cad.errors import ArgumentError, ToolFailure
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     if design is None:

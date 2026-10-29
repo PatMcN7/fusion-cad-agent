@@ -107,8 +107,8 @@ face-oriented circular hole command. If a true native operation is missing:
   geometry files with exact replacements and expected_sha256 from a fresh read.
   Studio, bridge, runtime, workspace/security modules, and credentials are not
   writable in this mode. Add regression tests and explicit argument schemas.
-  Register the new handler in tools.py with _register and explicit mutating flag;
-  schema in tool_schemas.json or explicit _register field schemas. Read the
+  Register the new handler in fusion_cad/tools.py with _register and explicit mutating flag;
+  schema in fusion_cad/tool_schemas.json or explicit _register field schemas. Read the
   neighboring spatial and recipe registration patterns. New recipes need explicit
   imports/reload wiring; files alone are not capabilities. Create dependencies
   BEFORE adding imports. Reuse exact face_ref resolution, native sketch circles,

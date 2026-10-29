@@ -6,12 +6,12 @@ geometry is testable without Fusion.
 
 import unittest
 
-import fasteners
-import mechanics
-import ops
-import patterns
-import pick
-from errors import PatternError, SelectionError
+from fusion_cad import fasteners
+from fusion_cad import mechanics
+from fusion_cad import ops
+from fusion_cad import patterns
+from fusion_cad import pick
+from fusion_cad.errors import PatternError, SelectionError
 
 
 class DirectionParsing(unittest.TestCase):
@@ -78,7 +78,7 @@ class PlateRules(unittest.TestCase):
 
 
 class NoStdlibShadowing(unittest.TestCase):
-    """pick.py is named that way because select.py shadows the stdlib module
+    """fusion_cad/pick.py is named that way because select.py shadows the stdlib module
     http.server depends on, which would break the bridge's own socket."""
 
     def test_module_names_are_safe(self):
@@ -120,7 +120,7 @@ class ErrorIdentity(unittest.TestCase):
     can catch one base class instead of comparing class names as strings."""
 
     def test_all_errors_share_a_base_and_carry_a_code(self):
-        import errors
+        from fusion_cad import errors
         for name in ("ProtocolError", "ArgumentError", "PatternError",
                      "SelectionError", "OpError", "ToolFailure", "CheckFailed"):
             cls = getattr(errors, name)

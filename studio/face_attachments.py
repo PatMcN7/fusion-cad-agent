@@ -1,6 +1,6 @@
 """Validate face attachments against Fusion before adding them to model input."""
 import json
-from errors import ArgumentError
+from fusion_cad.errors import ArgumentError
 
 
 def resolve_attachments(bridge, attachments):

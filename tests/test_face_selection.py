@@ -4,10 +4,10 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
 from test_registry import _install_adsk_stub
 _install_adsk_stub()
-import face_selection
-import spatial
-import tools
-from errors import ArgumentError
+from fusion_cad import face_selection
+from fusion_cad import spatial
+from fusion_cad import tools
+from fusion_cad.errors import ArgumentError
 
 
 class Object:

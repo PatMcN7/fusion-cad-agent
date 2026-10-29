@@ -5,11 +5,11 @@ No document creation, switching, saving, or preexisting body edits.
 import math
 import adsk.core
 import adsk.fusion
-import ops
-import pick
-import spatial
-from checkpoints import operation
-from errors import ArgumentError, ToolFailure
+from fusion_cad import ops
+from fusion_cad import pick
+from fusion_cad import spatial
+from fusion_cad.checkpoints import operation
+from fusion_cad.errors import ArgumentError, ToolFailure
 
 C = 2.54
 

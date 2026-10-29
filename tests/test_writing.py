@@ -9,8 +9,8 @@ import pathlib
 import tempfile
 import unittest
 
-import workspace
-from errors import ArgumentError
+from fusion_cad import workspace
+from fusion_cad.errors import ArgumentError
 
 
 class WriteFence(unittest.TestCase):
@@ -21,7 +21,7 @@ class WriteFence(unittest.TestCase):
 
     def test_execution_runtime_is_not_writable_through_the_agent(self):
         with self.assertRaises(ArgumentError):
-            workspace.resolve_writable("execution.py")
+            workspace.resolve_writable("fusion_cad/execution.py")
 
     def test_the_addin_shell_is_never_writable(self):
         """A syntax error there kills the bridge.
@@ -41,7 +41,7 @@ class WriteFence(unittest.TestCase):
         self.assertIn("hot-reloaded", str(caught.exception))
 
     def test_relative_paths_resolve_against_the_repo(self):
-        self.assertEqual(workspace.resolve_writable("patterns.py").name, "patterns.py")
+        self.assertEqual(workspace.resolve_writable("fusion_cad/patterns.py"), workspace.REPO / "fusion_cad" / "patterns.py")
 
     def test_credentials_are_refused_even_in_the_repo(self):
         with self.assertRaises(ArgumentError):

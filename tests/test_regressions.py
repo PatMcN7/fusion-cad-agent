@@ -8,10 +8,10 @@ All three are now cheap offline checks that run before the kernel is touched.
 import math
 import unittest
 
-import assertions
-import geom
-import patterns
-from errors import CheckFailed
+from fusion_cad import assertions
+from fusion_cad import geom
+from fusion_cad import patterns
+from fusion_cad.errors import CheckFailed
 
 
 def buggy_tiling(length, width, cell_size, rib_width, center=True):
@@ -219,7 +219,7 @@ class AgentBrief(unittest.TestCase):
     def setUp(self):
         import pathlib
 
-        import catalog
+        from fusion_cad import catalog
 
         self.root = pathlib.Path(__file__).resolve().parent.parent
         # The brief is AGENTS.md plus the generated source map. Both surfaces
@@ -253,7 +253,7 @@ class AgentBrief(unittest.TestCase):
         # The capability that solved a real request and was undocumented:
         # the geometry code hot-reloads, so an agent may fix a generator.
         self.assertIn("hot-reload", self.brief.lower())
-        self.assertIn("patterns.py", self.brief)
+        self.assertIn("fusion_cad/patterns.py", self.brief)
 
     def test_brief_warns_that_green_checks_are_not_correctness(self):
         lowered = self.brief.lower()

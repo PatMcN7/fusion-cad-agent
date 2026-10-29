@@ -32,7 +32,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from common import agent_home
+from fusion_cad.common import agent_home
 
 # Events whose payload is large and whose content is already captured
 # elsewhere. `text` and `thinking` arrive as one record per token; storing

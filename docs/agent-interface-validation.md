@@ -5,9 +5,8 @@ Historical measurements below used the first interface iteration. A subsequent
 changed the default from 12 tools to 10. The replay timings below have not been
 remeasured for that new default.
 
-This iteration addresses the failures in
-[the reviewed GLM chat](studio-session-review-2026-09-05.md). It changes the
-interface and runtime around the model, using the same configured GLM-5.3 Flash
+This iteration addressed failures observed in a GLM development chat. It changed
+the interface and runtime around the model, using the same configured GLM-5.3 Flash
 worker and vision roles with low effort. No model upgrade was needed.
 
 ## Implemented
@@ -139,7 +138,7 @@ other providers need their own live acceptance runs. The 80-word response target
 is prompt guidance, not hard truncation; the final replay still exceeded it once.
 
 The saved-assembly revision milestone, arbitrary dependency repair, reopen
-identity, full restoration, and broader model comparisons remain open in PLAN.md.
+identity, full restoration, and broader model comparisons remain open work.
 Native API references used for inspection/deletion: Autodesk's
 [Profile.parentSketch](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/Profile_parentSketch.htm),
 [Timeline.markerPosition](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/Timeline_markerPosition.htm),

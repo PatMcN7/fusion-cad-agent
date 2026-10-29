@@ -31,7 +31,7 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from bridge_client import Bridge, BridgeError, CONTROL_TOOLS, tool_schemas  # noqa: E402
+from fusion_cad.bridge_client import Bridge, BridgeError, CONTROL_TOOLS, tool_schemas  # noqa: E402
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_INFO = {"name": "fusion-cad", "version": "1.0.0"}
@@ -49,7 +49,7 @@ def _load_brief() -> str:
         # AGENTS.md plus the generated source-map index. The index is what
         # stops a client shelling out to `rg` twenty-five times to discover
         # helpers that were always there.
-        import catalog
+        from fusion_cad import catalog
         return catalog.brief()
     except Exception:
         return ("These tools drive a live Autodesk Fusion session. Dimensions "

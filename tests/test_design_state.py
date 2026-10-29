@@ -2,10 +2,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock
-from design_state import DesignState, SCHEMA
-from bridge_client import Bridge
-from errors import ArgumentError
-from tool_contracts import validate
+from fusion_cad.design_state import DesignState, SCHEMA
+from fusion_cad.bridge_client import Bridge
+from fusion_cad.errors import ArgumentError
+from fusion_cad.tool_contracts import validate
 
 
 def entry(key,kind='unknown',status='open',**kw):
@@ -75,7 +75,7 @@ class MCPDesignSurface(unittest.TestCase):
     def test_mcp_exposes_same_state_tool_and_records_dependencies(self):
         import mcp_server
         from unittest.mock import patch
-        from design_state import TOOLS
+        from fusion_cad.design_state import TOOLS
         bridge=Bridge();bridge.registry=Mock(return_value=TOOLS)
         with patch.object(mcp_server,'BRIDGE',bridge):
             advertised=mcp_server.handle_tools_list({})['tools'][0]

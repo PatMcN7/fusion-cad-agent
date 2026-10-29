@@ -8,10 +8,10 @@ import time
 import uuid
 
 import agent_runtime
-from bridge_client import tool_schemas
-from design_state import SCHEMA as INTENT_SCHEMA
-from errors import ArgumentError
-from tool_contracts import validate
+from fusion_cad.bridge_client import tool_schemas
+from fusion_cad.design_state import SCHEMA as INTENT_SCHEMA
+from fusion_cad.errors import ArgumentError
+from fusion_cad.tool_contracts import validate
 from hybrid_plan import PlanError, Values, failed_checks, validate_plan
 from .base import Provider, ProviderError, ToolCall, Turn, truncate
 from tool_development import SOURCE_TOOLS, SOURCE_WRITES, guard as development_guard

@@ -40,7 +40,7 @@ def _install_adsk_stub() -> None:
 
 _install_adsk_stub()
 
-import tools  # noqa: E402
+from fusion_cad import tools  # noqa: E402
 
 
 class RegistryContract(unittest.TestCase):

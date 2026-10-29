@@ -57,8 +57,8 @@ import providers  # noqa: E402
 from providers import (Cancelled, Provider, ProviderError, ToolResult,  # noqa: E402
                        ToolSpec)
 
-from design_state import DesignState
-from common import agent_home, load_or_create_token, read_connection_info  # noqa: E402
+from fusion_cad.design_state import DesignState
+from fusion_cad.common import agent_home, load_or_create_token, read_connection_info  # noqa: E402
 
 # Captures are fed back on every mutating call, so keep them modest -- a
 # full-resolution frame can cost several thousand tokens each time.
@@ -99,12 +99,12 @@ TRANSCRIPTS_OFF = os.environ.get("STUDIO_TRANSCRIPT", "").lower() in ("0", "off"
 
 # --------------------------------------------------------------- bridge ----
 
-from bridge_client import Bridge, BridgeError, tool_schemas  # noqa: E402
-from bridge_client import property_schema as _property_schema  # noqa: E402
+from fusion_cad.bridge_client import Bridge, BridgeError, tool_schemas  # noqa: E402
+from fusion_cad.bridge_client import property_schema as _property_schema  # noqa: E402
 import agent_runtime
 import face_attachments
-from tool_contracts import validate as validate_arguments
-from errors import ArgumentError
+from fusion_cad.tool_contracts import validate as validate_arguments
+from fusion_cad.errors import ArgumentError
 
 
 def tool_specs(registry: dict[str, Any]) -> list[ToolSpec]:
